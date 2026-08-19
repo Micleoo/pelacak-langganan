@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/*
+ * Design System — ADR-0002 (di-amandemen 2026-08-19)
+ * Mood: tenang, terpercaya, fokus kesadaran finansial.
+ * Palet: primary teal #0D9488 · neutral slate #0F172A (teks) / #F8FAFC (bg)
+ *        accent amber #F59E0B (badge upcoming renewal, bukan body text)
+ * Font: Inter (variable, self-host via next/font) + tabular-nums utk digit
+ *       finansial. Fallback system stack.
+ * Kategori: 8 token warna cat-1..cat-8 (harmonis, saturasi rendah) + ikon
+ *       lucide-react. Lihat lib/categories.ts.
+ * Kontras: AA-safe; teks putih di atas teal untuk tombol.
+ */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0d9488;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #115e59;
+  --color-primary-900: #134e4a;
+
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-200: #fde68a;
+  --color-accent-300: #fcd34d;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
+  --color-accent-800: #92400e;
+  --color-accent-900: #78350f;
+
+  /* Neutral semantik (DESIGN.md: Ink Slate / Morning Mist) */
+  --color-ink-slate: #0f172a;
+  --color-mist-paper: #f8fafc;
+
+  /* Warna aksen kategori (ADR-0002, Identitas Kategori) */
+  --color-cat-1: #0d9488;
+  --color-cat-2: #d97706;
+  --color-cat-3: #475569;
+  --color-cat-4: #2563eb;
+  --color-cat-5: #059669;
+  --color-cat-6: #7c3aed;
+  --color-cat-7: #e11d48;
+  --color-cat-8: #ea580c;
+}
+
+body {
+  background-color: var(--color-mist-paper);
+  color: var(--color-ink-slate);
+}
