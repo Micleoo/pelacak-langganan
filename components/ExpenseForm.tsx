@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { monthlyAmount } from "@/lib/recurring";
 import { formatIDRMonthly } from "@/lib/format";
 import type { Expense, Interval, Status } from "@/lib/types";
+import { Button } from "./ui/Button";
 
 const INTERVALS: { value: Interval; label: string }[] = [
   { value: "monthly", label: "Bulanan" },
@@ -126,8 +127,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
       .catch(() => setConfirmDelete(false));
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink-slate outline-none transition focus:border-primary-600 focus:ring-2 focus:ring-primary-100";
+  const inputClass = "ds-input w-full";
 
   return (
     <form
@@ -136,16 +136,16 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
       className="mx-auto max-w-3xl px-4 py-8 sm:px-6"
     >
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-ink-slate">
+        <h1 className="text-3xl font-semibold text-ink-slate">
           {existing ? "Edit Biaya" : "Tambah Biaya"}
         </h1>
-        <button
+        <Button
+          kind="secondary"
           type="button"
           onClick={() => router.back()}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-ink-slate transition hover:bg-slate-50"
         >
           Batal
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -295,40 +295,40 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
           <div>
             {confirmDelete ? (
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  kind="secondary"
                   type="button"
                   onClick={handleDelete}
-                  className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
                 >
                   Yakin hapus?
-                </button>
-                <button
+                </Button>
+                <Button
+                  kind="secondary"
                   type="button"
                   onClick={() => setConfirmDelete(false)}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-ink-slate hover:bg-slate-50"
                 >
                   Batal
-                </button>
+                </Button>
               </div>
             ) : (
-              <button
+              <Button
+                kind="secondary"
                 type="button"
                 onClick={() => setConfirmDelete(true)}
-                className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50"
               >
                 Hapus
-              </button>
+              </Button>
             )}
           </div>
         ) : (
           <span />
         )}
-        <button
+        <Button
+          kind="primary"
           type="submit"
-          className="rounded-lg bg-primary-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
         >
           Simpan
-        </button>
+        </Button>
       </div>
     </form>
   );

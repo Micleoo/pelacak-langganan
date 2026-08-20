@@ -7,6 +7,8 @@ import { useStore } from "@/lib/store";
 import { monthlyAmount } from "@/lib/recurring";
 import { formatDate, formatIDR, formatIDRMonthly } from "@/lib/format";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import type { Interval } from "@/lib/types";
 
 const INTERVAL_LABEL: Record<Interval, string> = {
@@ -38,14 +40,14 @@ export default function ExpensesPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-ink-slate">Daftar Biaya</h1>
+          <h1 className="text-3xl font-semibold text-ink-slate">Daftar Biaya</h1>
           <p className="mt-1 text-sm text-slate-500">
             Semua biaya berulang dalam satu tempat.
           </p>
         </div>
         <Link
           href="/expenses/new"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+          className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5"
         >
           <Plus className="h-4 w-4" aria-hidden />
           Tambah biaya
@@ -67,13 +69,13 @@ export default function ExpensesPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari berdasarkan nama…"
-            className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-ink-slate outline-none transition focus:border-primary-600 focus:ring-2 focus:ring-primary-100"
+            className="ds-input w-full py-2 pl-9 pr-3"
           />
         </div>
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink-slate outline-none transition focus:border-primary-600 focus:ring-2 focus:ring-primary-100"
+          className="ds-input px-3 py-2"
           aria-label="Filter kategori"
         >
           <option value="">Semua kategori</option>
@@ -97,7 +99,7 @@ export default function ExpensesPage() {
           {expenses.length === 0 && (
             <Link
               href="/expenses/new"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700"
+              className="ds-btn-primary mt-4 inline-flex items-center gap-1.5"
             >
               <Plus className="h-4 w-4" aria-hidden />
               Tambah biaya
@@ -105,7 +107,8 @@ export default function ExpensesPage() {
           )}
         </div>
       ) : (
-        <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+        <Card className="p-0 overflow-hidden">
+          <ul className="divide-y divide-slate-200">
           {filtered.map((e) => (
             <li key={e.id} className="flex items-center gap-3 px-4 py-3">
               <CategoryIcon name={categoryName(e.category_id)} />
@@ -118,9 +121,7 @@ export default function ExpensesPage() {
                     {e.name}
                   </Link>
                   {e.status === "cancelled" && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                      Berhenti
-                    </span>
+                    <Badge className="bg-slate-100 text-slate-500">Berhenti</Badge>
                   )}
                 </div>
                 <p className="text-xs text-slate-500">
@@ -138,7 +139,7 @@ export default function ExpensesPage() {
                 <Link
                   href={`/expenses/${e.id}/edit`}
                   aria-label={`Edit ${e.name}`}
-                  className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-ink-slate"
+                  className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-ink-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                 >
                   <Pencil className="h-4 w-4" />
                 </Link>
@@ -149,7 +150,7 @@ export default function ExpensesPage() {
                       onClick={() => {
                         void deleteExpense(e.id).then(() => setConfirmDeleteId(null));
                       }}
-                      className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700"
+                      className="ds-btn-secondary px-2 py-1 text-xs"
                     >
                       Yakin hapus?
                     </button>
@@ -157,7 +158,7 @@ export default function ExpensesPage() {
                       type="button"
                       onClick={() => setConfirmDeleteId(null)}
                       aria-label="Batal hapus"
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100"
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -167,7 +168,7 @@ export default function ExpensesPage() {
                     type="button"
                     onClick={() => setConfirmDeleteId(e.id)}
                     aria-label={`Hapus ${e.name}`}
-                    className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                    className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -176,6 +177,7 @@ export default function ExpensesPage() {
             </li>
           ))}
         </ul>
+        </Card>
       )}
     </div>
   );

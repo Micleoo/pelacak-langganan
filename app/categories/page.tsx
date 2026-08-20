@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 export default function CategoriesPage() {
   const { categories, expenses, addCategory, renameCategory, deleteCategory } =
@@ -58,7 +60,7 @@ export default function CategoriesPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-ink-slate">Kategori</h1>
+        <h1 className="text-3xl font-semibold text-ink-slate">Kategori</h1>
         <p className="mt-1 text-sm text-slate-500">
           Kelompokkan biaya berulang agar rincian pengeluaran lebih jelas.
         </p>
@@ -75,16 +77,15 @@ export default function CategoriesPage() {
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           placeholder="Nama kategori baru (mis. Streaming)"
-          className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink-slate outline-none transition focus:border-primary-600 focus:ring-2 focus:ring-primary-100"
+          className="ds-input flex-1 py-2"
         />
-        <button
-          type="button"
+        <Button
           onClick={handleAdd}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+          className="gap-1.5"
         >
           <Plus className="h-4 w-4" aria-hidden />
           Tambah
-        </button>
+        </Button>
       </div>
 
       {notice && (
@@ -93,13 +94,14 @@ export default function CategoriesPage() {
         </p>
       )}
 
-      <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
-        {categories.length === 0 && (
-          <li className="px-4 py-8 text-center text-sm text-slate-500">
-            Belum ada kategori. Tambahkan kategori pertama Anda.
-          </li>
-        )}
-        {categories.map((category) => {
+      <Card className="p-0 overflow-hidden">
+        <ul className="divide-y divide-slate-200">
+          {categories.length === 0 && (
+            <li className="px-4 py-8 text-center text-sm text-slate-500">
+              Belum ada kategori. Tambahkan kategori pertama Anda.
+            </li>
+          )}
+          {categories.map((category) => {
           const count = expenses.filter(
             (e) => e.category_id === category.id,
           ).length;
@@ -114,13 +116,13 @@ export default function CategoriesPage() {
                     value={editingName}
                     onChange={(e) => setEditingName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleRename()}
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-ink-slate outline-none focus:border-primary-600"
+                    className="ds-input flex-1 py-1 px-2"
                   />
                   <button
                     type="button"
                     onClick={handleRename}
                     aria-label="Simpan nama kategori"
-                    className="rounded-md p-1.5 text-primary-600 hover:bg-primary-50"
+                    className="rounded-md p-1.5 text-primary-600 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                   >
                     <Check className="h-4 w-4" />
                   </button>
@@ -128,7 +130,7 @@ export default function CategoriesPage() {
                     type="button"
                     onClick={() => setEditingId(null)}
                     aria-label="Batal edit nama"
-                    className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+                    className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -150,23 +152,23 @@ export default function CategoriesPage() {
                       setEditingName(category.name);
                     }}
                     aria-label={`Ubah nama ${category.name}`}
-                    className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-ink-slate"
+                    className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-ink-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   {confirmDeleteId === category.id ? (
                     <div className="flex items-center gap-1">
-                      <button
-                        type="button"
+                      <Button
+                        kind="secondary"
                         onClick={handleDelete}
-                        className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-700"
+                        className="px-2 py-1 text-xs"
                       >
                         Yakin hapus?
-                      </button>
+                      </Button>
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(null)}
-                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100"
+                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                         aria-label="Batal hapus kategori"
                       >
                         <X className="h-4 w-4" />
@@ -177,7 +179,7 @@ export default function CategoriesPage() {
                       type="button"
                       onClick={() => setConfirmDeleteId(category.id)}
                       aria-label={`Hapus kategori ${category.name}`}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -187,7 +189,8 @@ export default function CategoriesPage() {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </Card>
     </div>
   );
 }

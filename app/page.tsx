@@ -7,6 +7,8 @@ import { buildUpcoming, monthlyAmount, resolveNotifyDays } from "@/lib/recurring
 import { formatDate, formatIDR, formatIDRMonthly } from "@/lib/format";
 import { categoryIdentity } from "@/lib/categories";
 import { CategoryIcon, CATEGORY_SOLID } from "@/components/CategoryIcon";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 
 export default function DashboardPage() {
   const { expenses, categories, settings } = useStore();
@@ -63,10 +65,10 @@ export default function DashboardPage() {
       )}
 
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-ink-slate">Dashboard</h1>
+        <h1 className="text-3xl font-semibold text-ink-slate">Dashboard</h1>
         <Link
           href="/expenses/new"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-700"
+          className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5"
         >
           <Plus className="h-4 w-4" aria-hidden />
           Tambah biaya
@@ -84,7 +86,7 @@ export default function DashboardPage() {
           </p>
           <Link
             href="/expenses/new"
-            className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
+            className="ds-btn-primary mt-5 inline-flex items-center gap-1.5"
           >
             <Plus className="h-4 w-4" aria-hidden />
             Tambah biaya pertama
@@ -92,16 +94,26 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <section className="rounded-xl border border-primary-100 bg-primary-50 p-6">
-            <p className="text-sm font-medium text-primary-700">
-              Total biaya bulanan
-            </p>
-            <p className="mt-1 text-4xl font-bold tabular-nums text-ink-slate">
-              {formatIDRMonthly(total)}
-            </p>
-            <p className="mt-2 text-xs text-primary-700">
-              {active.length} biaya berlangganan aktif
-            </p>
+          <section className="relative overflow-hidden rounded-xl border border-primary-100 bg-primary-50 p-6">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_100%_at_100%_0%,rgba(13,148,136,0.14),transparent_60%)]"
+            />
+            <div
+              aria-hidden
+              className="hero-grain pointer-events-none absolute inset-0 opacity-[0.04] mix-blend-multiply"
+            />
+            <div className="relative">
+              <p className="text-sm font-medium text-primary-700">
+                Total biaya bulanan
+              </p>
+              <p className="mt-1 text-5xl font-bold tabular-nums text-ink-slate">
+                {formatIDRMonthly(total)}
+              </p>
+              <p className="mt-2 text-xs text-primary-700">
+                {active.length} biaya berlangganan aktif
+              </p>
+            </div>
           </section>
 
           <section className="mt-8">
@@ -110,8 +122,8 @@ export default function DashboardPage() {
             </h2>
             <ul className="space-y-3">
               {breakdown.map((b) => (
-                <li key={b.key} className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-center gap-3">
+                <li key={b.key}>
+                  <Card className="flex items-center gap-3 p-4">
                     <CategoryIcon name={b.name} size={32} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
@@ -132,7 +144,7 @@ export default function DashboardPage() {
                         {Math.round(b.pct)}% dari total
                       </p>
                     </div>
-                  </div>
+                  </Card>
                 </li>
               ))}
             </ul>
@@ -147,39 +159,37 @@ export default function DashboardPage() {
                 Tidak ada tagihan yang akan datang.
               </p>
             ) : (
-              <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
-                {upcoming.map(({ expense: e, effectiveDate, overdue, dueSoon }) => (
-                  <li key={e.id} className="flex items-center gap-3 px-4 py-3">
-                    <CategoryIcon name={categoryName(e.category_id)} size={32} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/expenses/${e.id}/edit`}
-                          className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
-                        >
-                          {e.name}
-                        </Link>
-                        {overdue && (
-                          <span className="rounded-full bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-800">
-                            Terlewat · dimajukan
-                          </span>
-                        )}
-                        {!overdue && dueSoon && (
-                          <span className="rounded-full bg-accent-100 px-2 py-0.5 text-xs font-semibold text-accent-800">
-                            Sebentar lagi
-                          </span>
-                        )}
-                      </div>
+              <Card className="p-0 overflow-hidden">
+                <ul className="divide-y divide-slate-200">
+                  {upcoming.map(({ expense: e, effectiveDate, overdue, dueSoon }) => (
+                    <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                      <CategoryIcon name={categoryName(e.category_id)} size={32} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/expenses/${e.id}/edit`}
+                            className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                          >
+                            {e.name}
+                          </Link>
+                          {overdue && (
+                            <Badge>Terlewat · dimajukan</Badge>
+                          )}
+                          {!overdue && dueSoon && (
+                            <Badge>Sebentar lagi</Badge>
+                          )}
+                        </div>
                       <p className="text-xs text-slate-500">
                         {formatDate(effectiveDate)}
                       </p>
                     </div>
                     <p className="text-sm font-semibold tabular-nums text-ink-slate">
                       {formatIDR(e.amount)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             )}
           </section>
         </>

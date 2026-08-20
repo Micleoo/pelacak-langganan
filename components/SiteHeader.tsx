@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Nav, NavLink } from "./ui/Nav";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
@@ -27,22 +28,18 @@ export function SiteHeader() {
         >
           Pelacak Langganan
         </Link>
-        <nav className="flex items-center gap-3 text-sm sm:gap-5">
+        <Nav>
           {NAV_ITEMS.map((item) => (
-            <Link
+            <NavLink
               key={item.href}
               href={item.href}
               aria-current={isActive(pathname, item.href) ? "page" : undefined}
-              className={
-                isActive(pathname, item.href)
-                  ? "font-semibold text-primary-600 no-underline"
-                  : "font-normal text-ink-slate no-underline hover:text-primary-600"
-              }
+              isActive={isActive(pathname, item.href)}
             >
               {item.label}
-            </Link>
+            </NavLink>
           ))}
-        </nav>
+        </Nav>
       </div>
     </header>
   );

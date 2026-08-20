@@ -5,14 +5,14 @@
  * Mood: tenang, terpercaya, fokus kesadaran finansial.
  * Palet: primary teal #0D9488 · neutral slate #0F172A (teks) / #F8FAFC (bg)
  *        accent amber #F59E0B (badge upcoming renewal, bukan body text)
- * Font: Inter (variable, self-host via next/font) + tabular-nums utk digit
+ * Font: Geist (variable, self-host via next/font) + tabular-nums utk digit
  *       finansial. Fallback system stack.
  * Kategori: 8 token warna cat-1..cat-8 (harmonis, saturasi rendah) + ikon
  *       lucide-react. Lihat lib/categories.ts.
  * Kontras: AA-safe; teks putih di atas teal untuk tombol.
  */
 @theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
@@ -57,3 +57,42 @@ body {
   background-color: var(--color-mist-paper);
   color: var(--color-ink-slate);
 }
+
+/* Judul & paragraf tidak meninggalkan kata terpisah di baris terakhir */
+h1,
+h2 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Grain halus untuk kartu hero total bulanan (satu-satunya pengecualian flat) */
+.hero-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E");
+}
+
+/* Impeccable Design System Components */
+.ds-btn-primary { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-weight: 600; font-size: 14px; background: var(--color-primary-600, #0d9488); color: #ffffff; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; transition: background 150ms ease-out; }
+.ds-btn-primary:hover { background: var(--color-primary-700, #0f766e); }
+.ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-primary-200, #99f6e4); }
+
+.ds-btn-secondary { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-weight: 500; font-size: 14px; background: transparent; color: #0f172a; padding: 12px 24px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; transition: background 150ms ease-out; }
+.ds-btn-secondary:hover { background: #f1f5f9; }
+.ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-primary-200, #99f6e4); }
+
+.ds-field { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-size: 14px; font-weight: 500; color: #0f172a; display: flex; flex-direction: column; gap: 6px; }
+.ds-input { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-weight: 400; font-size: 14px; color: #0f172a; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; transition: border-color 150ms ease-out, box-shadow 150ms ease-out; }
+.ds-input::placeholder { color: #94a3b8; }
+.ds-input:focus { outline: none; border-color: var(--color-primary-600, #0d9488); box-shadow: 0 0 0 3px var(--color-primary-100, #ccfbf1); }
+
+.ds-chip { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-size: 12px; font-weight: 600; background: var(--color-accent-100, #fef3c7); color: var(--color-accent-800, #92400e); border-radius: 999px; padding: 4px 10px; display: inline-flex; align-items: center; }
+
+.ds-card { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); color: #0f172a; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+
+.ds-nav { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); display: flex; gap: 16px; font-size: 14px; }
+.ds-nav-link { color: #0f172a; text-decoration: none; font-weight: 400; padding: 6px 2px; transition: color 150ms ease-out; }
+.ds-nav-link:hover { color: var(--color-primary-600, #0d9488); }
+.ds-nav-link.is-active { color: var(--color-primary-600, #0d9488); font-weight: 600; }
+.ds-nav-link:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-primary-200, #99f6e4); border-radius: 4px; }

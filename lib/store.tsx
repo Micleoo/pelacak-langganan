@@ -177,6 +177,7 @@ function defaultSettings(): AppSettings {
     default_notify_days_before: 3,
     email_enabled: false,
     in_app_enabled: true,
+    user_email: null,
   };
 }
 

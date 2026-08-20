@@ -18,6 +18,7 @@ export interface SettingsInput {
   default_notify_days_before: number;
   email_enabled: boolean;
   in_app_enabled: boolean;
+  user_email: string | null;
 }
 
 export interface DataStore {
