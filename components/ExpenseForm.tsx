@@ -7,6 +7,9 @@ import { monthlyAmount } from "@/lib/recurring";
 import { formatIDRMonthly } from "@/lib/format";
 import type { Expense, Interval, Status } from "@/lib/types";
 import { Button } from "./ui/Button";
+import { toast } from "react-hot-toast";
+import { ensureCategory } from "@/lib/categories";
+import { NEW_CATEGORY_KEY, NO_CATEGORY_LABEL } from "@/lib/constants";
 
 const INTERVALS: { value: Interval; label: string }[] = [
   { value: "monthly", label: "Bulanan" },
@@ -52,8 +55,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const creatingNewCategory = categoryId === "__new__";
+  const creatingNewCategory = categoryId === NEW_CATEGORY_KEY;
   const monthly = monthlyAmount(Number(amount) || 0, interval);
 
   function validate(): boolean {
@@ -73,22 +78,31 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
     return Object.keys(next).length === 0;
   }
 
+  function clearError(field: string) {
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
+    setIsSubmitting(true);
 
     void (async () => {
       let finalCategoryId: string | null =
-        categoryId === "__new__" || categoryId === "" ? null : categoryId;
+        categoryId === NEW_CATEGORY_KEY || categoryId === "" ? null : categoryId;
       if (creatingNewCategory && newCategoryName.trim()) {
         try {
-          finalCategoryId = (await addCategory({ name: newCategoryName.trim() }))
-            .id;
+          finalCategoryId = await ensureCategory(
+            { categories, addCategory } as any,
+            newCategoryName.trim()
+          );
         } catch {
-          setErrors((prev) => ({
-            ...prev,
-            category: "Gagal menyimpan kategori baru.",
-          }));
+          toast.error("Gagal menyimpan kategori baru.");
+          setIsSubmitting(false);
           return;
         }
       }
@@ -106,25 +120,33 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
       try {
         if (existing) {
           await updateExpense(existing.id, input);
+          toast.success("Biaya diperbarui.");
         } else {
           await addExpense(input);
+          toast.success("Biaya ditambahkan.");
         }
       } catch {
-        setErrors((prev) => ({
-          ...prev,
-          category: "Gagal menyimpan biaya. Coba lagi.",
-        }));
+        toast.error("Gagal menyimpan biaya. Coba lagi.");
+        setIsSubmitting(false);
         return;
       }
       router.push("/expenses");
     })();
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!existing) return;
-    void deleteExpense(existing.id)
-      .then(() => router.push("/expenses"))
-      .catch(() => setConfirmDelete(false));
+    setIsDeleting(true);
+    try {
+      await deleteExpense(existing.id);
+      toast.success("Biaya dihapus.");
+      router.push("/expenses");
+    } catch {
+      toast.error("Gagal menghapus biaya.");
+      setConfirmDelete(false);
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   const inputClass = "ds-input w-full";
@@ -157,7 +179,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
             id="name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              clearError("name");
+            }}
             placeholder="Netflix"
             className={inputClass}
             aria-invalid={!!errors.name}
@@ -179,7 +204,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
               step="1"
               inputMode="numeric"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                clearError("amount");
+              }}
               placeholder="149000"
               className={`${inputClass} tabular-nums`}
               aria-invalid={!!errors.amount}
@@ -196,7 +224,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
             <select
               id="interval"
               value={interval}
-              onChange={(e) => setInterval(e.target.value as Interval)}
+              onChange={(e) => {
+                setInterval(e.target.value as Interval);
+                clearError("interval");
+              }}
               className={inputClass}
             >
               {INTERVALS.map((i) => (
@@ -215,24 +246,30 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
           <select
             id="category"
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              clearError("category");
+            }}
             className={inputClass}
             aria-invalid={!!errors.category}
           >
-            <option value="">Tanpa kategori</option>
+            <option value="">{NO_CATEGORY_LABEL}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
-            <option value="__new__">+ Buat kategori baru…</option>
+            <option value={NEW_CATEGORY_KEY}>+ Buat kategori baru…</option>
           </select>
           {creatingNewCategory && (
             <input
               type="text"
               autoFocus
               value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
+              onChange={(e) => {
+                setNewCategoryName(e.target.value);
+                clearError("category");
+              }}
               placeholder="Nama kategori baru"
               className={`${inputClass} mt-2`}
               aria-invalid={!!errors.category}
@@ -251,7 +288,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
             <select
               id="status"
               value={status}
-              onChange={(e) => setStatus(e.target.value as Status)}
+              onChange={(e) => {
+                setStatus(e.target.value as Status);
+                clearError("status");
+              }}
               className={inputClass}
             >
               <option value="active">Active</option>
@@ -270,7 +310,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
               id="nextBillingDate"
               type="date"
               value={nextBillingDate}
-              onChange={(e) => setNextBillingDate(e.target.value)}
+              onChange={(e) => {
+                setNextBillingDate(e.target.value);
+                clearError("date");
+              }}
               className={`${inputClass} tabular-nums`}
               aria-invalid={!!errors.date}
             />
@@ -299,6 +342,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
                   kind="secondary"
                   type="button"
                   onClick={handleDelete}
+                  loading={isDeleting}
                 >
                   Yakin hapus?
                 </Button>
@@ -326,6 +370,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
         <Button
           kind="primary"
           type="submit"
+          loading={isSubmitting}
         >
           Simpan
         </Button>

@@ -1,4 +1,12 @@
 import { categoryIdentity, type CategoryColorToken } from "@/lib/categories";
+import { CATEGORY_ICON_SIZE } from "@/lib/constants";
+import {
+  Bot,
+  CircleDollarSign,
+  Clapperboard,
+  Wifi,
+  type LucideIcon,
+} from "lucide-react";
 
 const TEXT_COLOR: Record<CategoryColorToken, string> = {
   "cat-1": "text-cat-1",
@@ -33,16 +41,38 @@ export const CATEGORY_SOLID: Record<CategoryColorToken, string> = {
   "cat-8": "bg-cat-8",
 };
 
+const KNOWN_CATEGORIES: Record<string, { icon: LucideIcon; color: CategoryColorToken }> = {
+  Streaming: { icon: Clapperboard, color: "cat-1" },
+  "AI Tools": { icon: Bot, color: "cat-2" },
+  Utilitas: { icon: Wifi, color: "cat-3" },
+};
+
+const DEFAULT_CATEGORY: { icon: LucideIcon; color: CategoryColorToken } = {
+  icon: CircleDollarSign,
+  color: "cat-4",
+};
+
+function categoryIconIdentity(name: string | null | undefined): {
+  icon: LucideIcon;
+  color: CategoryColorToken;
+} {
+  if (!name) return DEFAULT_CATEGORY;
+  const known = KNOWN_CATEGORIES[name];
+  if (known) return known;
+  const { color } = categoryIdentity(name);
+  return { icon: DEFAULT_CATEGORY.icon, color };
+}
+
 export function CategoryIcon({
   name,
-  size = 36,
+  size = CATEGORY_ICON_SIZE.md,
   className = "",
 }: {
   name: string | null | undefined;
   size?: number;
   className?: string;
 }) {
-  const { icon: Icon, color } = categoryIdentity(name);
+  const { icon: Icon, color } = categoryIconIdentity(name);
   return (
     <span
       aria-hidden

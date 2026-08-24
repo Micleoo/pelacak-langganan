@@ -34,6 +34,7 @@ create table if not exists public.app_settings (
   default_notify_days_before integer not null default 3 check (default_notify_days_before between 1 and 7),
   email_enabled boolean not null default false,
   in_app_enabled boolean not null default true,
+  user_email text,
   updated_at timestamptz not null default now()
 );
 

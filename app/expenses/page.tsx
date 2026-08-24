@@ -10,6 +10,8 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import type { Interval } from "@/lib/types";
+import { toast } from "react-hot-toast";
+import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 
 const INTERVAL_LABEL: Record<Interval, string> = {
   monthly: "Bulanan",
@@ -25,14 +27,14 @@ export default function ExpensesPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const categoryName = (id: string | null) =>
-    categories.find((c) => c.id === id)?.name ?? "Tanpa kategori";
+    categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
 
   const filtered = expenses.filter((e) => {
     const matchesQuery = e.name.toLowerCase().includes(query.toLowerCase());
     const matchesCategory =
       categoryFilter === "" ||
       e.category_id === categoryFilter ||
-      (categoryFilter === "__none__" && e.category_id === null);
+      (categoryFilter === NONE_CATEGORY_KEY && e.category_id === null);
     return matchesQuery && matchesCategory;
   });
 
@@ -79,7 +81,7 @@ export default function ExpensesPage() {
           aria-label="Filter kategori"
         >
           <option value="">Semua kategori</option>
-          <option value="__none__">Tanpa kategori</option>
+          <option value={NONE_CATEGORY_KEY}>{NO_CATEGORY_LABEL}</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -147,8 +149,14 @@ export default function ExpensesPage() {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => {
-                        void deleteExpense(e.id).then(() => setConfirmDeleteId(null));
+                      onClick={async () => {
+                        try {
+                          await deleteExpense(e.id);
+                          toast.success("Biaya dihapus.");
+                          setConfirmDeleteId(null);
+                        } catch {
+                          toast.error("Gagal menghapus biaya.");
+                        }
                       }}
                       className="ds-btn-secondary px-2 py-1 text-xs"
                     >

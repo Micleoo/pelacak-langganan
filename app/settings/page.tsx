@@ -6,6 +6,8 @@ import { useStore } from "@/lib/store";
 import { resolveNotifyDays } from "@/lib/recurring";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
+import { toast } from "react-hot-toast";
+import { NO_CATEGORY_LABEL } from "@/lib/constants";
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -13,10 +15,12 @@ function Toggle({
   checked,
   onChange,
   label,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -24,9 +28,15 @@ function Toggle({
       role="switch"
       aria-checked={checked}
       aria-label={label}
-      onClick={() => onChange(!checked)}
+      aria-disabled={disabled}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
-        checked ? "bg-primary-600" : "bg-slate-300"
+        disabled
+          ? "opacity-50 cursor-not-allowed"
+          : checked
+          ? "bg-primary-600"
+          : "bg-slate-300"
       }`}
     >
       <span
@@ -41,22 +51,48 @@ function Toggle({
 export default function SettingsPage() {
   const { expenses, categories, settings, updateSettings, updateExpenseNotifyDays } =
     useStore();
-  const [notice, setNotice] = useState<string | null>(null);
-
-  function showNotice(message: string) {
-    setNotice(message);
-    window.setTimeout(() => setNotice(null), 2000);
-  }
 
   const active = expenses.filter((e) => e.status === "active");
   const globalDays = settings.default_notify_days_before;
   const categoryName = (id: string | null) =>
-    categories.find((c) => c.id === id)?.name ?? "Tanpa kategori";
+    categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
+
+  const [emailInput, setEmailInput] = useState(settings.user_email || "");
+  const [emailDebounceTimer, setEmailDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   function onGlobalChange(days: number) {
-    void updateSettings({ ...settings, default_notify_days_before: days })
-      .then(() => showNotice("Timing global diperbarui."))
-      .catch(() => showNotice("Gagal memperbarui pengaturan."));
+    updateSettings({ ...settings, default_notify_days_before: days })
+      .then(() => toast.success("Timing global diperbarui."))
+      .catch(() => toast.error("Gagal memperbarui pengaturan."));
+  }
+
+  function saveEmail(val: string) {
+    const trimmed = val.trim();
+    if (trimmed === (settings.user_email || "")) return;
+    updateSettings({ ...settings, user_email: trimmed })
+      .then(() => toast.success("Email disimpan."))
+      .catch(() => toast.error("Gagal menyimpan email."));
+  }
+
+  function handleEmailChange(val: string) {
+    setEmailInput(val);
+    if (emailDebounceTimer) clearTimeout(emailDebounceTimer);
+    const timer = setTimeout(() => {
+      saveEmail(val);
+    }, 300);
+    setEmailDebounceTimer(timer);
+  }
+
+  function handleEmailBlur() {
+    if (emailDebounceTimer) clearTimeout(emailDebounceTimer);
+    saveEmail(emailInput);
+  }
+
+  function handleEmailKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      if (emailDebounceTimer) clearTimeout(emailDebounceTimer);
+      saveEmail(emailInput);
+    }
   }
 
   const inputClass = "ds-input";
@@ -69,12 +105,6 @@ export default function SettingsPage() {
       <p className="mb-6 text-sm text-slate-500">
         Konfigurasi pengingat sebelum biaya berulang jatuh tempo.
       </p>
-
-      {notice && (
-        <p role="status" className="mb-4 rounded-lg bg-primary-50 px-3 py-2 text-sm text-primary-800">
-          {notice}
-        </p>
-      )}
 
       <div className="space-y-6">
         <Card className="p-5">
@@ -96,13 +126,13 @@ export default function SettingsPage() {
               checked={settings.in_app_enabled}
               label="Aktifkan notifikasi in-app"
               onChange={(v) => {
-                void updateSettings({ ...settings, in_app_enabled: v })
+                updateSettings({ ...settings, in_app_enabled: v })
                   .then(() =>
-                    showNotice(
+                    toast.success(
                       v ? "Notifikasi in-app aktif." : "Notifikasi in-app nonaktif.",
                     ),
                   )
-                  .catch(() => showNotice("Gagal memperbarui pengaturan."));
+                  .catch(() => toast.error("Gagal memperbarui pengaturan."));
               }}
             />
           </div>
@@ -148,19 +178,29 @@ export default function SettingsPage() {
             <Toggle
               checked={settings.email_enabled}
               label="Aktifkan notifikasi email"
+              disabled={!settings.user_email}
               onChange={(v) => {
-                void updateSettings({ ...settings, email_enabled: v })
+                if (!settings.user_email && v) {
+                  toast.error("Isi alamat email terlebih dahulu.");
+                  return;
+                }
+                updateSettings({ ...settings, email_enabled: v })
                   .then(() =>
-                    showNotice(
+                    toast.success(
                       v
                         ? "Notifikasi email diaktifkan."
                         : "Notifikasi email nonaktif.",
                     ),
                   )
-                  .catch(() => showNotice("Gagal memperbarui pengaturan."));
+                  .catch(() => toast.error("Gagal memperbarui pengaturan."));
               }}
             />
           </div>
+          {!settings.user_email && (
+            <p className="mt-2 text-xs text-slate-500">
+              Isi alamat email di bawah untuk mengaktifkan notifikasi email.
+            </p>
+          )}
           {settings.email_enabled && (
             <div className="mt-4 pt-4 border-t border-slate-100">
               <label htmlFor="user-email" className="mb-1.5 block text-sm font-medium text-ink-slate">
@@ -171,18 +211,13 @@ export default function SettingsPage() {
                 type="email"
                 className="ds-input w-full"
                 placeholder="contoh@email.com"
-                defaultValue={settings.user_email || ""}
-                onBlur={(e) => {
-                  const val = e.target.value.trim();
-                  if (val !== (settings.user_email || "")) {
-                    void updateSettings({ ...settings, user_email: val })
-                      .then(() => showNotice("Email disimpan."))
-                      .catch(() => showNotice("Gagal menyimpan email."));
-                  }
-                }}
+                value={emailInput}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                onBlur={handleEmailBlur}
+                onKeyDown={handleEmailKeyDown}
               />
               <p className="mt-2 text-xs text-slate-500">
-                Otomatis disimpan saat Anda memindahkan kursor.
+                Disimpan otomatis (debounce 300ms) atau tekan Enter.
               </p>
             </div>
           )}
@@ -209,18 +244,18 @@ export default function SettingsPage() {
                     value={e.notify_days_before ?? ""}
                     onChange={(ev) => {
                       const v = ev.target.value;
-                      void updateExpenseNotifyDays(
+                      updateExpenseNotifyDays(
                         e.id,
                         v === "" ? null : Number(v),
                       )
                         .then(() =>
-                          showNotice(
+                          toast.success(
                             v === ""
                               ? `${e.name} memakai timing global (H-${globalDays}).`
                               : `${e.name} diingatkan H-${v}.`,
                           ),
                         )
-                        .catch(() => showNotice("Gagal memperbarui biaya."));
+                        .catch(() => toast.error("Gagal memperbarui biaya."));
                     }}
                     className={inputClass}
                     aria-label={`Timing pengingat ${e.name}`}

@@ -1,14 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore } from "@/components/StoreProvider";
 import { buildUpcoming, monthlyAmount, resolveNotifyDays } from "@/lib/recurring";
 import { formatDate, formatIDR, formatIDRMonthly } from "@/lib/format";
 import { categoryIdentity } from "@/lib/categories";
 import { CategoryIcon, CATEGORY_SOLID } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { toast } from "react-hot-toast";
+import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 
 export default function DashboardPage() {
   const { expenses, categories, settings } = useStore();
@@ -21,11 +24,11 @@ export default function DashboardPage() {
   );
 
   const categoryName = (id: string | null) =>
-    categories.find((c) => c.id === id)?.name ?? "Tanpa kategori";
+    categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
 
   const byCategory = new Map<string, number>();
   for (const e of active) {
-    const key = e.category_id ?? "__none__";
+    const key = e.category_id ?? NONE_CATEGORY_KEY;
     byCategory.set(
       key,
       (byCategory.get(key) ?? 0) + monthlyAmount(e.amount, e.interval),
@@ -34,7 +37,7 @@ export default function DashboardPage() {
   const breakdown = [...byCategory.entries()]
     .map(([key, value]) => ({
       key,
-      name: key === "__none__" ? "Tanpa kategori" : categoryName(key),
+      name: key === NONE_CATEGORY_KEY ? NO_CATEGORY_LABEL : categoryName(key),
       value,
       pct: total > 0 ? (value / total) * 100 : 0,
     }))

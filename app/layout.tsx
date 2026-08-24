@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { StoreProvider } from "@/lib/store";
+import { StoreProvider } from "@/components/StoreProvider";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 import "./globals.css";
 
 const geist = Geist({
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Lewati ke konten
         </a>
         <StoreProvider>
+          <ToastProvider />
           <SiteHeader />
           <main id="main" className="flex-1">{children}</main>
         </StoreProvider>

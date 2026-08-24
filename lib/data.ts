@@ -32,5 +32,5 @@ export interface DataStore {
   addCategory(input: CategoryInput): Promise<Category>;
   renameCategory(id: string, name: string): Promise<void>;
   deleteCategory(id: string): Promise<void>;
-  updateSettings(input: SettingsInput): Promise<void>;
+  updateSettings(input: SettingsInput): Promise<AppSettings>;
 }

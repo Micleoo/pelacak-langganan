@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { toast } from "react-hot-toast";
 
 export default function CategoriesPage() {
   const { categories, expenses, addCategory, renameCategory, deleteCategory } =
@@ -14,47 +15,50 @@ export default function CategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  function showNotice(message: string) {
-    setNotice(message);
-    window.setTimeout(() => setNotice(null), 2000);
-  }
+  const [isAdding, setIsAdding] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   function handleAdd() {
     const name = newName.trim();
     if (!name) return;
     if (categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-      setNotice("Kategori sudah ada.");
+      toast.error("Kategori sudah ada.");
       return;
     }
-    void addCategory({ name })
+    setIsAdding(true);
+    addCategory({ name })
       .then(() => {
         setNewName("");
-        showNotice("Kategori ditambahkan.");
+        toast.success("Kategori ditambahkan.");
       })
-      .catch(() => setNotice("Gagal menambah kategori."));
+      .catch(() => toast.error("Gagal menambah kategori."))
+      .finally(() => setIsAdding(false));
   }
 
   function handleRename() {
     const name = editingName.trim();
     if (!editingId || !name) return;
-    void renameCategory(editingId, name)
+    setIsRenaming(true);
+    renameCategory(editingId, name)
       .then(() => {
         setEditingId(null);
-        showNotice("Nama kategori diperbarui.");
+        toast.success("Nama kategori diperbarui.");
       })
-      .catch(() => setNotice("Gagal memperbarui kategori."));
+      .catch(() => toast.error("Gagal memperbarui kategori."))
+      .finally(() => setIsRenaming(false));
   }
 
   function handleDelete() {
     if (!confirmDeleteId) return;
-    void deleteCategory(confirmDeleteId)
+    setIsDeleting(true);
+    deleteCategory(confirmDeleteId)
       .then(() => {
         setConfirmDeleteId(null);
-        showNotice("Kategori dihapus.");
+        toast.success("Kategori dihapus.");
       })
-      .catch(() => setNotice("Gagal menghapus kategori."));
+      .catch(() => toast.error("Gagal menghapus kategori."))
+      .finally(() => setIsDeleting(false));
   }
 
   return (
@@ -82,17 +86,12 @@ export default function CategoriesPage() {
         <Button
           onClick={handleAdd}
           className="gap-1.5"
+          loading={isAdding}
         >
           <Plus className="h-4 w-4" aria-hidden />
           Tambah
         </Button>
       </div>
-
-      {notice && (
-        <p role="status" className="mb-4 rounded-lg bg-primary-50 px-3 py-2 text-sm text-primary-800">
-          {notice}
-        </p>
-      )}
 
       <Card className="p-0 overflow-hidden">
         <ul className="divide-y divide-slate-200">
@@ -123,8 +122,13 @@ export default function CategoriesPage() {
                     onClick={handleRename}
                     aria-label="Simpan nama kategori"
                     className="rounded-md p-1.5 text-primary-600 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                    disabled={isRenaming}
                   >
-                    <Check className="h-4 w-4" />
+                    {isRenaming ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
                   </button>
                   <button
                     type="button"
@@ -162,6 +166,7 @@ export default function CategoriesPage() {
                         kind="secondary"
                         onClick={handleDelete}
                         className="px-2 py-1 text-xs"
+                        loading={isDeleting}
                       >
                         Yakin hapus?
                       </Button>
