@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Mail } from "lucide-react";
+import { Bell, Download, Mail, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { resolveNotifyDays } from "@/lib/recurring";
+import { exportExpensesToCSV } from "@/lib/export-csv";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { toast } from "react-hot-toast";
@@ -376,6 +377,54 @@ export default function SettingsPage() {
               ))}
             </ul>
           )}
+        </Card>
+        <Card className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                <Download className="h-5 w-5" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-sm font-medium text-ink-slate">
+                  Cadangan & Ekspor Data
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Unduh seluruh daftar biaya berulang dan kategori dalam format file CSV.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (expenses.length === 0) {
+                  toast.error("Belum ada data untuk diekspor.");
+                  return;
+                }
+                exportExpensesToCSV(expenses, categories);
+                toast.success("File CSV berhasil diunduh.");
+              }}
+              className="ds-btn-secondary inline-flex items-center justify-center gap-1.5 text-xs py-2 px-3 shrink-0"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Unduh File CSV
+            </button>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-dashed bg-slate-50/50">
+          <div className="flex items-start gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-200/70 text-slate-600">
+              <ShieldCheck className="h-4 w-4" aria-hidden />
+            </span>
+            <div className="space-y-1 text-xs text-slate-600">
+              <p className="font-semibold text-ink-slate">
+                Privasi & Kepemilikan Data
+              </p>
+              <p className="leading-relaxed">
+                Aplikasi Pelacak Langganan berjalan secara privat. Data biaya dan preferensi notifikasi Anda tidak pernah dibagikan atau dijual ke pihak ketiga. Anda memiliki kendali penuh atas data Anda kapan saja.
+              </p>
+            </div>
+          </div>
         </Card>
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createSupabaseClient } from "@/lib/supabase-client";
 import { createSupabaseAdapter } from "@/lib/supabase-adapter";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import type { DataStore } from "@/lib/data";
 import type { AppSettings, Category, Expense } from "@/lib/types";
 
@@ -115,11 +116,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-mist-paper text-sm text-ink-slate">
-        Memuat…
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

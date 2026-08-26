@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Download, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { monthlyAmount } from "@/lib/recurring";
-import { formatDate, formatIDR, formatIDRMonthly } from "@/lib/format";
+import { formatDate, formatIDR, formatIDRMonthly, formatRelativeDue } from "@/lib/format";
+import { exportExpensesToCSV } from "@/lib/export-csv";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -38,22 +39,43 @@ export default function ExpensesPage() {
     return matchesQuery && matchesCategory;
   });
 
+  function handleExportCSV() {
+    if (expenses.length === 0) {
+      toast.error("Belum ada data biaya untuk diekspor.");
+      return;
+    }
+    exportExpensesToCSV(expenses, categories);
+    toast.success("File CSV berhasil diunduh.");
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold text-ink-slate">Daftar Biaya</h1>
           <p className="mt-1 text-sm text-slate-500">
             Semua biaya berulang dalam satu tempat.
           </p>
         </div>
-        <Link
-          href="/expenses/new"
-          className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          Tambah biaya
-        </Link>
+        <div className="flex items-center gap-2">
+          {expenses.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="ds-btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Ekspor CSV
+            </button>
+          )}
+          <Link
+            href="/expenses/new"
+            className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Tambah biaya
+          </Link>
+        </div>
       </div>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row">
@@ -128,7 +150,10 @@ export default function ExpensesPage() {
                 </div>
                 <p className="text-xs text-slate-500">
                   {formatIDR(e.amount)} · {INTERVAL_LABEL[e.interval]} ·{" "}
-                  {formatDate(e.next_billing_date)}
+                  {formatDate(e.next_billing_date)}{" "}
+                  <span className="text-[11px] font-medium text-slate-400">
+                    ({formatRelativeDue(e.next_billing_date).label})
+                  </span>
                 </p>
               </div>
               <div className="hidden text-right sm:block">

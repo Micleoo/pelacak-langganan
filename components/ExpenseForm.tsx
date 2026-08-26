@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { monthlyAmount } from "@/lib/recurring";
-import { formatIDRMonthly } from "@/lib/format";
+import { formatIDRMonthly, formatIntervalFormula } from "@/lib/format";
 import type { Expense, Interval, Status } from "@/lib/types";
 import { Button } from "./ui/Button";
 import { toast } from "react-hot-toast";
@@ -59,7 +59,8 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const creatingNewCategory = categoryId === NEW_CATEGORY_KEY;
-  const monthly = monthlyAmount(Number(amount) || 0, interval);
+  const numAmount = Number(amount) || 0;
+  const monthly = monthlyAmount(numAmount, interval);
 
   function validate(): boolean {
     const next: Record<string, string> = {};
@@ -323,12 +324,26 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
           </div>
         </div>
 
-        <div className="rounded-lg bg-primary-50 px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-primary-700">
-            Biaya bulanan
-          </p>
-          <p className="mt-0.5 text-xl font-semibold tabular-nums text-primary-800">
+        <div className="rounded-xl border border-primary-100 bg-primary-50/80 p-4 space-y-1">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary-700">
+              Biaya bulanan (Normalisasi)
+            </p>
+            {numAmount > 0 && interval !== "monthly" && (
+              <span className="text-[11px] font-medium text-primary-700 bg-primary-100/70 px-2 py-0.5 rounded-md">
+                {interval === "yearly" ? "Tahunan ÷ 12" : interval === "quarterly" ? "Kuartal ÷ 3" : "Mingguan × 52 ÷ 12"}
+              </span>
+            )}
+          </div>
+          <p className="text-2xl font-bold tabular-nums text-ink-slate">
             {formatIDRMonthly(monthly)}
+          </p>
+          <p className="text-xs text-primary-700/90 pt-0.5">
+            {interval === "monthly"
+              ? "Dihitung tetap per bulan."
+              : numAmount > 0
+              ? `Rumus: ${formatIntervalFormula(numAmount, interval)}`
+              : "Masukkan nominal untuk melihat rincian normalisasi."}
           </p>
         </div>
       </div>

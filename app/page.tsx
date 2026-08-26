@@ -5,12 +5,13 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
 import { buildUpcoming, monthlyAmount, resolveNotifyDays } from "@/lib/recurring";
-import { formatDate, formatIDR, formatIDRMonthly } from "@/lib/format";
+import { formatDate, formatIDR, formatIDRMonthly, formatRelativeDue } from "@/lib/format";
 import { categoryIdentity } from "@/lib/categories";
 import { CategoryIcon, CATEGORY_SOLID } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { toast } from "react-hot-toast";
+import { PrivacyBanner } from "@/components/PrivacyBanner";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 
 export default function DashboardPage() {
@@ -52,6 +53,8 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <PrivacyBanner />
+
       {showBanner && (
         <div className="mb-6 rounded-xl border border-accent-200 bg-accent-50 px-4 py-3">
           <p className="text-sm font-semibold text-accent-800">
@@ -60,7 +63,7 @@ export default function DashboardPage() {
           <ul className="mt-1 list-inside list-disc text-sm text-accent-800">
             {notifyItems.map(({ expense: e, effectiveDate }) => (
               <li key={e.id}>
-                {e.name} · {formatDate(effectiveDate)}
+                {e.name} · {formatDate(effectiveDate)} ({formatRelativeDue(effectiveDate, today).label})
               </li>
             ))}
           </ul>
@@ -68,7 +71,12 @@ export default function DashboardPage() {
       )}
 
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold text-ink-slate">Dashboard</h1>
+        <div>
+          <h1 className="text-3xl font-semibold text-ink-slate">Dashboard</h1>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Ringkasan seluruh biaya berulang dan tagihan rutin Anda.
+          </p>
+        </div>
         <Link
           href="/expenses/new"
           className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5"
@@ -79,22 +87,7 @@ export default function DashboardPage() {
       </div>
 
       {active.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-16 text-center">
-          <p className="text-base font-medium text-ink-slate">
-            Belum ada biaya berulang
-          </p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
-            Tambahkan langganan dan tagihan rutin Anda untuk mulai melihat ke
-            mana uang Anda pergi.
-          </p>
-          <Link
-            href="/expenses/new"
-            className="ds-btn-primary mt-5 inline-flex items-center gap-1.5"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            Tambah biaya pertama
-          </Link>
-        </div>
+        <OnboardingCard />
       ) : (
         <>
           <section className="relative overflow-hidden rounded-xl border border-primary-100 bg-primary-50 p-6">
@@ -120,9 +113,14 @@ export default function DashboardPage() {
           </section>
 
           <section className="mt-8">
-            <h2 className="mb-3 text-base font-semibold text-ink-slate">
-              Jatuh tempo
-            </h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-ink-slate">
+                Jatuh tempo
+              </h2>
+              <span className="text-xs text-slate-500">
+                {upcoming.length} tagihan mendatang
+              </span>
+            </div>
             {upcoming.length === 0 ? (
               <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
                 Tidak ada tagihan yang akan datang.
@@ -130,33 +128,39 @@ export default function DashboardPage() {
             ) : (
               <Card className="p-0 overflow-hidden">
                 <ul className="divide-y divide-slate-200">
-                  {upcoming.map(({ expense: e, effectiveDate, overdue, dueSoon }) => (
-                    <li key={e.id} className="flex items-center gap-3 px-4 py-3">
-                      <CategoryIcon name={categoryName(e.category_id)} size={32} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/expenses/${e.id}/edit`}
-                            className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
-                          >
-                            {e.name}
-                          </Link>
-                          {overdue && (
-                            <Badge>Terlewat · dimajukan</Badge>
-                          )}
-                          {!overdue && dueSoon && (
-                            <Badge>Sebentar lagi</Badge>
-                          )}
+                  {upcoming.map(({ expense: e, effectiveDate, overdue, dueSoon }) => {
+                    const rel = formatRelativeDue(effectiveDate, today);
+                    return (
+                      <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                        <CategoryIcon name={categoryName(e.category_id)} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <Link
+                              href={`/expenses/${e.id}/edit`}
+                              className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                            >
+                              {e.name}
+                            </Link>
+                            {overdue && (
+                              <Badge>Terlewat · dimajukan</Badge>
+                            )}
+                            {!overdue && dueSoon && (
+                              <Badge>Sebentar lagi</Badge>
+                            )}
+                            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                              {rel.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {formatDate(effectiveDate)}
+                          </p>
                         </div>
-                      <p className="text-xs text-slate-500">
-                        {formatDate(effectiveDate)}
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold tabular-nums text-ink-slate">
-                      {formatIDR(e.amount)}
-                      </p>
-                    </li>
-                  ))}
+                        <p className="text-sm font-semibold tabular-nums text-ink-slate shrink-0">
+                          {formatIDR(e.amount)}
+                        </p>
+                      </li>
+                    );
+                  })}
                 </ul>
               </Card>
             )}

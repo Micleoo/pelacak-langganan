@@ -6,6 +6,7 @@ import {
   resolveNotifyDays,
   wasAutoAdvanced,
 } from "./recurring";
+import { formatIntervalFormula, formatRelativeDue } from "./format";
 import type { AppSettings, Expense, Interval } from "./types";
 
 const today = new Date(2026, 7, 19);
@@ -134,5 +135,25 @@ describe("buildUpcoming", () => {
       resolve,
     );
     expect(items.map((i) => i.expense.id)).toEqual(["early", "late"]);
+  });
+});
+
+describe("formatRelativeDue & formatIntervalFormula", () => {
+  const baseDate = new Date(2026, 7, 18); // 2026-08-18
+
+  it("calculates relative dates accurately", () => {
+    expect(formatRelativeDue("2026-08-18", baseDate).label).toBe("Hari ini");
+    expect(formatRelativeDue("2026-08-19", baseDate).label).toBe("Besok");
+    expect(formatRelativeDue("2026-08-20", baseDate).label).toBe("Lusa (2 hari lagi)");
+    expect(formatRelativeDue("2026-08-23", baseDate).label).toBe("5 hari lagi");
+    expect(formatRelativeDue("2026-08-17", baseDate).label).toBe("Kemarin (terlewat 1 hari)");
+    expect(formatRelativeDue("2026-08-15", baseDate).label).toBe("Terlewat 3 hari");
+  });
+
+  it("formats interval formulas with math breakdown", () => {
+    expect(formatIntervalFormula(1200000, "yearly")).toContain("÷ 12 bulan =");
+    expect(formatIntervalFormula(300000, "quarterly")).toContain("÷ 3 bulan =");
+    expect(formatIntervalFormula(50000, "weekly")).toContain("× 52 ÷ 12 =");
+    expect(formatIntervalFormula(100000, "monthly")).toBe("Rp 100.000/bulan");
   });
 });
