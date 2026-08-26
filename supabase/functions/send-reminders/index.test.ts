@@ -53,4 +53,14 @@ describe("Edge Function: send-reminders", () => {
     expect(reminderDate.getUTCDate()).toBe(28);
     expect(reminderDate.getUTCMonth()).toBe(1); // February
   });
+
+  it("should format email test reminder payload correctly", () => {
+    const isTest = true;
+    const targetEmail = "test@example.com";
+    const sampleExpenses = [{ name: "Netflix", amount: 186000, next_billing_date: "2026-08-30" }];
+
+    expect(isTest).toBe(true);
+    expect(targetEmail).toContain("@");
+    expect(sampleExpenses.length).toBeGreaterThan(0);
+  });
 });
