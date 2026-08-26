@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Panggil Supabase Edge Function send-reminders (di mana RESEND_API_KEY sudah terpasang di Supabase Secrets)
+    // 1. Panggil Supabase Edge Function send-reminders (di mana RESEND_API_KEY terpasang di Supabase Secrets)
     try {
       const { data: funcData, error: funcError } = await supabase.functions.invoke(
         "send-reminders",
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
         }
       );
 
+      // Jika invoke berhasil
       if (!funcError && funcData) {
         if (funcData.delivered || funcData.success) {
           return NextResponse.json({
@@ -44,27 +45,57 @@ export async function POST(req: Request) {
         if (funcData.error) {
           let errorMsg = funcData.error;
           if (typeof errorMsg === "string" && errorMsg.includes("API key is invalid")) {
-            errorMsg = "RESEND_API_KEY tidak valid atau belum diisi dengan key Resend aktif. Perbarui RESEND_API_KEY di Supabase Secrets atau .env.local.";
+            errorMsg = "Kunci RESEND_API_KEY tidak valid atau belum diisi dengan API Key aktif dari Resend (re_...).";
           }
-          return NextResponse.json(
-            { error: errorMsg },
-            { status: 502 }
-          );
+          return NextResponse.json({ error: errorMsg }, { status: 502 });
         }
       }
 
+      // Jika invoke mengembalikan error HTTP (misal 502 dari Edge Function)
       if (funcError) {
-        console.warn("Supabase functions.invoke warning:", funcError);
+        let edgeErrMsg = funcError.message || "Gagal menghubungi Edge Function.";
+        if (funcError.context && typeof funcError.context.json === "function") {
+          try {
+            const errorBody = await funcError.context.json();
+            if (errorBody?.error) {
+              edgeErrMsg = errorBody.error;
+            }
+          } catch {
+            // Abaikan jika tidak bisa diparse sebagai JSON
+          }
+        }
+
+        if (typeof edgeErrMsg === "string" && edgeErrMsg.includes("API key is invalid")) {
+          return NextResponse.json(
+            {
+              error: "Kunci RESEND_API_KEY tidak valid. Masukkan API Key Resend asli (dari https://resend.com/api-keys) ke Supabase Secrets.",
+            },
+            { status: 400 }
+          );
+        }
+
+        if (typeof edgeErrMsg === "string" && edgeErrMsg.includes("RESEND_API_KEY tidak ditemukan")) {
+          return NextResponse.json(
+            {
+              error: "RESEND_API_KEY belum diset di Supabase Secrets. Jalankan: npx supabase secrets set RESEND_API_KEY=re_... --project-ref ohjiqunmvqqqvypwftjk",
+            },
+            { status: 400 }
+          );
+        }
+
+        return NextResponse.json(
+          { error: edgeErrMsg },
+          { status: 502 }
+        );
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn("Error invoking Supabase Edge Function:", e);
     }
 
-    // 2. Fallback jika RESEND_API_KEY tersedia di environment Next.js (.env.local)
+    // 2. Fallback jika RESEND_API_KEY tersedia langsung di environment Next.js (.env.local)
     const resendApiKey = process.env.RESEND_API_KEY;
 
     if (resendApiKey) {
-      // Ambil data expenses aktif
       const { data: expenses } = await supabase
         .from("expenses")
         .select("id, name, amount, interval, next_billing_date, status")
@@ -135,10 +166,10 @@ export async function POST(req: Request) {
       });
     }
 
-    // 3. Jika Edge function gagal & belum ada RESEND_API_KEY lokal
+    // 3. Jika gagal total
     return NextResponse.json(
       {
-        error: "Gagal menghubungkan ke layanan pengiriman email. Pastikan Edge Function send-reminders sudah dideploy atau konfigurasi RESEND_API_KEY.",
+        error: "Gagal menghubungkan ke layanan pengiriman email. Pastikan Edge Function send-reminders aktif dan RESEND_API_KEY valid.",
       },
       { status: 502 }
     );
