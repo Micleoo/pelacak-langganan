@@ -59,6 +59,12 @@ export default function SettingsPage() {
 
   const [emailInput, setEmailInput] = useState(settings.user_email || "");
   const [emailDebounceTimer, setEmailDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+
+  function isValidEmail(email: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  }
 
   function onGlobalChange(days: number) {
     updateSettings({ ...settings, default_notify_days_before: days })
@@ -66,32 +72,113 @@ export default function SettingsPage() {
       .catch(() => toast.error("Gagal memperbarui pengaturan."));
   }
 
-  function saveEmail(val: string) {
+  function saveEmail(val: string, showToast = true): Promise<boolean> {
     const trimmed = val.trim();
-    if (trimmed === (settings.user_email || "")) return;
-    updateSettings({ ...settings, user_email: trimmed })
-      .then(() => toast.success("Email disimpan."))
-      .catch(() => toast.error("Gagal menyimpan email."));
+    if (trimmed && !isValidEmail(trimmed)) {
+      if (showToast) toast.error("Format email tidak valid.");
+      return Promise.resolve(false);
+    }
+    if (trimmed === (settings.user_email || "")) {
+      return Promise.resolve(true);
+    }
+    setIsSavingEmail(true);
+    return updateSettings({
+      ...settings,
+      user_email: trimmed,
+      email_enabled: trimmed ? settings.email_enabled : false,
+    })
+      .then(() => {
+        setIsSavingEmail(false);
+        if (showToast && trimmed) toast.success("Email berhasil disimpan.");
+        return true;
+      })
+      .catch(() => {
+        setIsSavingEmail(false);
+        if (showToast) toast.error("Gagal menyimpan email.");
+        return false;
+      });
   }
 
   function handleEmailChange(val: string) {
     setEmailInput(val);
     if (emailDebounceTimer) clearTimeout(emailDebounceTimer);
     const timer = setTimeout(() => {
-      saveEmail(val);
-    }, 300);
+      if (val.trim() === "" || isValidEmail(val)) {
+        saveEmail(val, false);
+      }
+    }, 600);
     setEmailDebounceTimer(timer);
   }
 
   function handleEmailBlur() {
     if (emailDebounceTimer) clearTimeout(emailDebounceTimer);
-    saveEmail(emailInput);
+    if (emailInput.trim() !== (settings.user_email || "")) {
+      saveEmail(emailInput);
+    }
   }
 
   function handleEmailKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       if (emailDebounceTimer) clearTimeout(emailDebounceTimer);
       saveEmail(emailInput);
+    }
+  }
+
+  async function handleToggleEmail(checked: boolean) {
+    if (checked) {
+      const emailToUse = emailInput.trim() || settings.user_email || "";
+      if (!emailToUse || !isValidEmail(emailToUse)) {
+        toast.error("Masukkan alamat email yang valid terlebih dahulu.");
+        const inputEl = document.getElementById("user-email") as HTMLInputElement | null;
+        if (inputEl) inputEl.focus();
+        return;
+      }
+      const saved = await saveEmail(emailToUse, false);
+      if (!saved) return;
+      updateSettings({ ...settings, user_email: emailToUse, email_enabled: true })
+        .then(() => toast.success("Notifikasi email diaktifkan."))
+        .catch(() => toast.error("Gagal memperbarui pengaturan."));
+    } else {
+      updateSettings({ ...settings, email_enabled: false })
+        .then(() => toast.success("Notifikasi email dinonaktifkan."))
+        .catch(() => toast.error("Gagal memperbarui pengaturan."));
+    }
+  }
+
+  async function handleSendTestEmail() {
+    const emailToUse = emailInput.trim() || settings.user_email || "";
+    if (!emailToUse || !isValidEmail(emailToUse)) {
+      toast.error("Masukkan alamat email yang valid untuk mengirim uji coba.");
+      const inputEl = document.getElementById("user-email") as HTMLInputElement | null;
+      if (inputEl) inputEl.focus();
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      // Pastikan email tersimpan sebelum dikirim
+      await saveEmail(emailToUse, false);
+
+      const res = await fetch("/api/send-test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToUse }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mengirim email uji coba.");
+      }
+
+      if (data.delivered) {
+        toast.success(`Email uji coba terkirim ke ${emailToUse}!`);
+      } else {
+        toast.success("Uji coba sukses: " + data.message, { duration: 5000 });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mengirim email uji coba.");
+    } finally {
+      setIsSendingTest(false);
     }
   }
 
@@ -171,56 +258,72 @@ export default function SettingsPage() {
                   Notifikasi email
                 </p>
                 <p className="text-xs text-slate-500">
-                  Pengingat akan dikirim ke alamat email di bawah.
+                  Kirim rekap tagihan yang akan jatuh tempo langsung ke inbox Anda.
                 </p>
               </div>
             </div>
             <Toggle
               checked={settings.email_enabled}
               label="Aktifkan notifikasi email"
-              disabled={!settings.user_email}
-              onChange={(v) => {
-                if (!settings.user_email && v) {
-                  toast.error("Isi alamat email terlebih dahulu.");
-                  return;
-                }
-                updateSettings({ ...settings, email_enabled: v })
-                  .then(() =>
-                    toast.success(
-                      v
-                        ? "Notifikasi email diaktifkan."
-                        : "Notifikasi email nonaktif.",
-                    ),
-                  )
-                  .catch(() => toast.error("Gagal memperbarui pengaturan."));
-              }}
+              onChange={handleToggleEmail}
             />
           </div>
-          {!settings.user_email && (
-            <p className="mt-2 text-xs text-slate-500">
-              Isi alamat email di bawah untuk mengaktifkan notifikasi email.
-            </p>
-          )}
-          {settings.email_enabled && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+            <div>
               <label htmlFor="user-email" className="mb-1.5 block text-sm font-medium text-ink-slate">
-                Alamat Email
+                Alamat Email Pengingat
               </label>
-              <input
-                id="user-email"
-                type="email"
-                className="ds-input w-full"
-                placeholder="contoh@email.com"
-                value={emailInput}
-                onChange={(e) => handleEmailChange(e.target.value)}
-                onBlur={handleEmailBlur}
-                onKeyDown={handleEmailKeyDown}
-              />
-              <p className="mt-2 text-xs text-slate-500">
-                Disimpan otomatis (debounce 300ms) atau tekan Enter.
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <input
+                  id="user-email"
+                  type="email"
+                  className="ds-input flex-1"
+                  placeholder="nama@email.com"
+                  value={emailInput}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  onBlur={handleEmailBlur}
+                  onKeyDown={handleEmailKeyDown}
+                />
+                <button
+                  type="button"
+                  onClick={() => saveEmail(emailInput)}
+                  disabled={isSavingEmail}
+                  className="ds-btn-secondary shrink-0 text-xs px-3 py-2"
+                >
+                  {isSavingEmail ? "Menyimpan..." : "Simpan Email"}
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Email disimpan otomatis atau klik Simpan Email.
               </p>
             </div>
-          )}
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+              <span className="text-xs text-slate-500">
+                Status:{" "}
+                {settings.email_enabled && settings.user_email ? (
+                  <span className="font-medium text-primary-700">
+                    Aktif (dikirim via cron harian)
+                  </span>
+                ) : (
+                  <span className="font-medium text-slate-500">
+                    Nonaktif
+                  </span>
+                )}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleSendTestEmail}
+                disabled={isSendingTest}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-100 disabled:opacity-50 transition-colors"
+              >
+                <Mail className="h-3.5 w-3.5" aria-hidden />
+                {isSendingTest ? "Mengirim Uji Coba..." : "Kirim Email Uji Coba"}
+              </button>
+            </div>
+          </div>
         </Card>
 
         <Card className="p-5">

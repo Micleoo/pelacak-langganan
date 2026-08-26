@@ -121,40 +121,6 @@ export default function DashboardPage() {
 
           <section className="mt-8">
             <h2 className="mb-3 text-base font-semibold text-ink-slate">
-              Rincian per kategori
-            </h2>
-            <ul className="space-y-3">
-              {breakdown.map((b) => (
-                <li key={b.key}>
-                  <Card className="flex items-center gap-3 p-4">
-                    <CategoryIcon name={b.name} size={32} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <p className="truncate text-sm font-medium text-ink-slate">
-                          {b.name}
-                        </p>
-                        <p className="text-sm font-semibold tabular-nums text-ink-slate">
-                          {formatIDRMonthly(b.value)}
-                        </p>
-                      </div>
-                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className={`h-full rounded-full ${CATEGORY_SOLID[categoryIdentity(b.name).color]}`}
-                          style={{ width: `${Math.max(b.pct, 2)}%` }}
-                        />
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {Math.round(b.pct)}% dari total
-                      </p>
-                    </div>
-                  </Card>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="mt-8">
-            <h2 className="mb-3 text-base font-semibold text-ink-slate">
               Jatuh tempo
             </h2>
             {upcoming.length === 0 ? (
@@ -194,6 +160,40 @@ export default function DashboardPage() {
                 </ul>
               </Card>
             )}
+          </section>
+
+          <section className="mt-8">
+            <h2 className="mb-3 text-base font-semibold text-ink-slate">
+              Rincian per kategori
+            </h2>
+            <ul className="space-y-3">
+              {breakdown.map((b) => (
+                <li key={b.key}>
+                  <Card className="flex items-center gap-3 p-4">
+                    <CategoryIcon name={b.name} size={32} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="truncate text-sm font-medium text-ink-slate">
+                          {b.name}
+                        </p>
+                        <p className="text-sm font-semibold tabular-nums text-ink-slate">
+                          {formatIDRMonthly(b.value)}
+                        </p>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full ${CATEGORY_SOLID[categoryIdentity(b.name).color]}`}
+                          style={{ width: `${Math.max(b.pct, 2)}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {Math.round(b.pct)}% dari total
+                      </p>
+                    </div>
+                  </Card>
+                </li>
+              ))}
+            </ul>
           </section>
         </>
       )}
