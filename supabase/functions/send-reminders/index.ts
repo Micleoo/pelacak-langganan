@@ -1,6 +1,9 @@
 // @ts-nocheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import nodemailer from 'npm:nodemailer@6.9.16'
 
+const SMTP_USER = Deno.env.get('SMTP_USER')
+const SMTP_PASS = Deno.env.get('SMTP_PASS')
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
 // Gunakan supabase url & key dari environment variable internal
@@ -121,10 +124,45 @@ Deno.serve(async (req) => {
       </div>
     `
 
-    // 4. Kirim email via Resend
-    if (!RESEND_API_KEY) {
-      return errorResponse('RESEND_API_KEY tidak ditemukan pada Supabase Secrets')
+    // 4. Kirim email via Gmail SMTP (jika SMTP_USER dan SMTP_PASS ada)
+    if (SMTP_USER && SMTP_PASS) {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: SMTP_USER,
+            pass: SMTP_PASS,
+          },
+        })
+
+        const emailSender = Deno.env.get('EMAIL_FROM') || `Pelacak Langganan <${SMTP_USER}>`
+
+        const info = await transporter.sendMail({
+          from: emailSender,
+          to: targetEmail,
+          subject: isTest ? '✓ [Uji Coba] Pengingat Tagihan — Pelacak Langganan' : 'Pengingat Tagihan Anda — Pelacak Langganan',
+          html: htmlContent,
+        })
+
+        return successResponse({
+          success: true,
+          delivered: true,
+          message: `Berhasil mengirim pengingat ke ${targetEmail} via Gmail (${dueExpenses.length} biaya)`,
+          sent_count: dueExpenses.length,
+          smtp_response: { messageId: info.messageId },
+        })
+      } catch (smtpErr) {
+        console.error('Gmail SMTP Error:', smtpErr)
+        return errorResponse(`Gagal mengirim via Gmail SMTP: ${smtpErr.message}`, 502)
+      }
     }
+
+    // 5. Fallback Kirim email via Resend
+    if (!RESEND_API_KEY) {
+      return errorResponse('Layanan email belum dikonfigurasi. Silakan set SMTP_USER & SMTP_PASS (Gmail) atau RESEND_API_KEY pada Supabase Secrets.')
+    }
+
+    const emailSender = Deno.env.get('EMAIL_FROM') || 'Pelacak Langganan <onboarding@resend.dev>'
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -133,7 +171,7 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Pelacak Langganan <onboarding@resend.dev>',
+        from: emailSender,
         to: [targetEmail],
         subject: isTest ? '✓ [Uji Coba] Pengingat Tagihan — Pelacak Langganan' : 'Pengingat Tagihan Anda — Pelacak Langganan',
         html: htmlContent,
@@ -144,7 +182,13 @@ Deno.serve(async (req) => {
 
     if (!res.ok) {
       console.error('Resend API error:', data)
-      return errorResponse(`Gagal mengirim email via Resend: ${JSON.stringify(data)}`, 502)
+      if (res.status === 403 && data.message?.includes('testing emails to your own email address')) {
+        return errorResponse(
+          `Domain pengirim Resend (${emailSender}) saat ini berada dalam mode sandbox testing dan hanya diizinkan mengirim ke email pemilik akun Resend terdaftar. Untuk mengirim ke email lain secara gratis, gunakan Gmail SMTP (SMTP_USER & SMTP_PASS) atau verifikasi custom domain. (Pesan Resend: ${data.message})`,
+          403
+        )
+      }
+      return errorResponse(`Gagal mengirim email via Resend: ${data.message || JSON.stringify(data)}`, 502)
     }
 
     return successResponse({ 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import nodemailer from "nodemailer";
 
 export async function POST(req: Request) {
   try {
@@ -46,6 +47,8 @@ export async function POST(req: Request) {
           let errorMsg = funcData.error;
           if (typeof errorMsg === "string" && errorMsg.includes("API key is invalid")) {
             errorMsg = "Kunci RESEND_API_KEY tidak valid atau belum diisi dengan API Key aktif dari Resend (re_...).";
+          } else if (typeof errorMsg === "string" && (errorMsg.includes("testing emails to your own email address") || errorMsg.includes("verify a domain"))) {
+            errorMsg = "Resend Sandbox Mode: Alamat email pengirim (onboarding@resend.dev) saat ini hanya mengizinkan pengiriman ke email akun pemilik Resend. Untuk mengirim ke email lain (termasuk email mentor/penguji), Anda perlu memverifikasi domain di resend.com/domains atau uji coba menggunakan email akun terdaftar Resend.";
           }
           return NextResponse.json({ error: errorMsg }, { status: 502 });
         }
@@ -74,6 +77,15 @@ export async function POST(req: Request) {
           );
         }
 
+        if (typeof edgeErrMsg === "string" && (edgeErrMsg.includes("testing emails to your own email address") || edgeErrMsg.includes("verify a domain"))) {
+          return NextResponse.json(
+            {
+              error: "Resend Sandbox Mode: Domain pengirim default (onboarding@resend.dev) hanya mengizinkan pengiriman ke email akun pemilik Resend. Untuk mengirim ke email lain, lakukan verifikasi domain di resend.com/domains atau gunakan email akun Resend terdaftar untuk pengujian.",
+            },
+            { status: 403 }
+          );
+        }
+
         if (typeof edgeErrMsg === "string" && edgeErrMsg.includes("RESEND_API_KEY tidak ditemukan")) {
           return NextResponse.json(
             {
@@ -92,8 +104,81 @@ export async function POST(req: Request) {
       console.warn("Error invoking Supabase Edge Function:", e);
     }
 
-    // 2. Fallback jika RESEND_API_KEY tersedia langsung di environment Next.js (.env.local)
+    // 2. Fallback jika SMTP_USER/SMTP_PASS atau RESEND_API_KEY tersedia di environment Next.js (.env.local)
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
     const resendApiKey = process.env.RESEND_API_KEY;
+
+    if (smtpUser && smtpPass) {
+      const { data: expenses } = await supabase
+        .from("expenses")
+        .select("id, name, amount, interval, next_billing_date, status")
+        .eq("status", "active")
+        .order("next_billing_date", { ascending: true })
+        .limit(5);
+
+      const expenseList = expenses && expenses.length > 0 ? expenses : [
+        { name: "Netflix Premium", amount: 186000, next_billing_date: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10) },
+        { name: "Spotify Individual", amount: 54990, next_billing_date: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10) }
+      ];
+
+      const expenseListHtml = expenseList
+        .map(
+          (e) =>
+            `<li style="margin-bottom: 8px;"><strong>${e.name}</strong> - Rp ${e.amount.toLocaleString("id-ID")} (Jatuh tempo: ${e.next_billing_date})</li>`
+        )
+        .join("");
+
+      const htmlContent = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #0f172a; line-height: 1.5;">
+          <div style="padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px;">
+            <h2 style="color: #0d9488; margin: 0; font-size: 20px;">Pelacak Langganan</h2>
+            <p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Pengingat Tagihan & Langganan Rutin (Email Uji Coba)</p>
+          </div>
+          <p>Halo,</p>
+          <p>Ini adalah email pengingat uji coba dari aplikasi <strong>Pelacak Langganan</strong>. Sistem notifikasi email Anda telah berhasil terhubung via Gmail SMTP!</p>
+          <div style="background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 16px; margin: 20px 0;">
+            <h3 style="margin-top: 0; font-size: 15px; color: #334155;">Contoh Tagihan yang Akan Datang:</h3>
+            <ul style="padding-left: 20px; margin-bottom: 0;">
+              ${expenseListHtml}
+            </ul>
+          </div>
+          <p style="font-size: 14px; color: #64748b;">Pengingat otomatis akan dikirimkan sesuai dengan timing H- yang telah Anda tentukan di menu Pengaturan.</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center;">Dikirim secara otomatis oleh Pelacak Langganan</p>
+        </div>
+      `;
+
+      try {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+        });
+
+        const fromSender = process.env.EMAIL_FROM || `Pelacak Langganan <${smtpUser}>`;
+        const info = await transporter.sendMail({
+          from: fromSender,
+          to: targetEmail,
+          subject: "✓ [Uji Coba] Pengingat Tagihan — Pelacak Langganan",
+          html: htmlContent,
+        });
+
+        return NextResponse.json({
+          success: true,
+          delivered: true,
+          message: `Email uji coba berhasil dikirim ke ${targetEmail} via Gmail!`,
+          id: info.messageId,
+        });
+      } catch (smtpError: any) {
+        return NextResponse.json(
+          { error: `Gagal mengirim via Gmail SMTP: ${smtpError.message || JSON.stringify(smtpError)}` },
+          { status: 502 }
+        );
+      }
+    }
 
     if (resendApiKey) {
       const { data: expenses } = await supabase
@@ -152,6 +237,14 @@ export async function POST(req: Request) {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 403 && data.message?.includes("testing emails to your own email address")) {
+          return NextResponse.json(
+            {
+              error: "Resend Sandbox Mode: Domain pengirim default (onboarding@resend.dev) hanya mengizinkan pengiriman ke email akun pemilik Resend. Untuk mengirim ke email lain, gunakan Gmail SMTP atau verifikasi domain di resend.com/domains.",
+            },
+            { status: 403 }
+          );
+        }
         return NextResponse.json(
           { error: `Gagal mengirim via Resend API: ${data.message || JSON.stringify(data)}` },
           { status: 502 }
@@ -169,7 +262,7 @@ export async function POST(req: Request) {
     // 3. Jika gagal total
     return NextResponse.json(
       {
-        error: "Gagal menghubungkan ke layanan pengiriman email. Pastikan Edge Function send-reminders aktif dan RESEND_API_KEY valid.",
+        error: "Gagal menghubungkan ke layanan pengiriman email. Pastikan Edge Function send-reminders aktif atau konfigurasi SMTP_USER & SMTP_PASS / RESEND_API_KEY valid.",
       },
       { status: 502 }
     );

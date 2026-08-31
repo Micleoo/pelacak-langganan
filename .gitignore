@@ -58,4 +58,6 @@ yarn-error.log*
 .vscode/
 .idea/
 testsprite_tests/
+supabase/.temp/
+
 
