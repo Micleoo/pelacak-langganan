@@ -8,6 +8,7 @@
 select cron.unschedule('advance-expenses-daily') where exists (select 1 from cron.job where jobname = 'advance-expenses-daily');
 
 -- 2. Update fungsi advance_past_due_expenses()
+drop function if exists public.advance_past_due_expenses();
 create or replace function public.advance_past_due_expenses()
 returns integer
 language plpgsql
