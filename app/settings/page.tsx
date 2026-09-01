@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Download, Info, Mail, ShieldCheck } from "lucide-react";
+import { Bell, Download, Mail, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { resolveNotifyDays } from "@/lib/recurring";
 import { exportExpensesToCSV } from "@/lib/export-csv";
@@ -323,16 +323,6 @@ export default function SettingsPage() {
                 <Mail className="h-3.5 w-3.5" aria-hidden />
                 {isSendingTest ? "Mengirim Uji Coba..." : "Kirim Email Uji Coba"}
               </button>
-            </div>
-
-            <div className="rounded-lg bg-teal-50/70 border border-teal-200/70 p-3 text-xs text-teal-900 flex items-start gap-2.5 mt-2">
-              <Info className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" aria-hidden />
-              <div>
-                <p className="font-medium text-teal-950 mb-0.5">Info Pengiriman Email (100% Gratis):</p>
-                <p className="text-teal-800 leading-relaxed">
-                  Sistem mendukung <strong>Gmail SMTP</strong> (gratis kirim ke alamat email siapa saja tanpa custom domain via Google App Password) serta <strong>Resend</strong> (mode sandbox <code className="bg-teal-100/80 px-1 py-0.5 rounded text-teal-950">onboarding@resend.dev</code> khusus email developer, atau custom domain terverifikasi).
-                </p>
-              </div>
             </div>
           </div>
         </Card>
