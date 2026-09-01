@@ -1,6 +1,6 @@
 export type Interval = "monthly" | "yearly" | "quarterly" | "weekly";
 
-export type Status = "active" | "cancelled";
+export type Status = "active" | "cancelled" | "paused" | "overdue";
 
 export interface Category {
   id: string;
@@ -17,6 +17,8 @@ export interface Expense {
   status: Status;
   next_billing_date: string;
   notify_days_before: number | null;
+  last_paid_date: string | null;
+  currency: string;
   created_at?: string;
 }
 
@@ -26,4 +28,5 @@ export interface AppSettings {
   email_enabled: boolean;
   in_app_enabled: boolean;
   user_email: string | null;
+  base_currency: string;
 }

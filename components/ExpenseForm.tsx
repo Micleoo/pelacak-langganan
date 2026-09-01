@@ -18,6 +18,21 @@ const INTERVALS: { value: Interval; label: string }[] = [
   { value: "weekly", label: "Mingguan" },
 ];
 
+const STATUSES_CREATE: { value: Status; label: string }[] = [
+  { value: "active", label: "Aktif" },
+  { value: "paused", label: "Dijeda" },
+  { value: "cancelled", label: "Dibatalkan" },
+];
+
+const STATUSES_EDIT: { value: Status; label: string }[] = [
+  { value: "active", label: "Aktif" },
+  { value: "paused", label: "Dijeda" },
+  { value: "overdue", label: "Terlewat" },
+  { value: "cancelled", label: "Dibatalkan" },
+];
+
+const CURRENCIES = ["IDR", "USD", "EUR", "SGD"] as const;
+
 function todayISO(): string {
   const d = new Date();
   return d.toISOString().slice(0, 10);
@@ -28,6 +43,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const {
     categories,
     expenses,
+    settings,
     addCategory,
     addExpense,
     updateExpense,
@@ -37,6 +53,8 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const existing = expenseId
     ? expenses.find((e) => e.id === expenseId)
     : undefined;
+
+  const baseCurrency = settings?.base_currency ?? "IDR";
 
   const [name, setName] = useState(existing?.name ?? "");
   const [amount, setAmount] = useState(
@@ -49,6 +67,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
     existing?.category_id ?? categories[0]?.id ?? "",
   );
   const [status, setStatus] = useState<Status>(existing?.status ?? "active");
+  const [currency, setCurrency] = useState<string>(existing?.currency ?? baseCurrency);
   const [nextBillingDate, setNextBillingDate] = useState(
     existing?.next_billing_date ?? todayISO(),
   );
@@ -59,6 +78,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const creatingNewCategory = categoryId === NEW_CATEGORY_KEY;
+  const isEditMode = !!existing;
   const numAmount = Number(amount) || 0;
   const monthly = monthlyAmount(numAmount, interval);
 
@@ -114,8 +134,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
         interval,
         category_id: finalCategoryId,
         status,
+        currency,
         next_billing_date: nextBillingDate,
         notify_days_before: existing?.notify_days_before ?? null,
+        last_paid_date: existing?.last_paid_date ?? null,
       };
 
       try {
@@ -151,6 +173,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   }
 
   const inputClass = "ds-input w-full";
+  const statusOptions = isEditMode ? STATUSES_EDIT : STATUSES_CREATE;
 
   return (
     <form
@@ -196,7 +219,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Nominal (IDR)
+              Nominal ({currency})
             </label>
             <input
               id="amount"
@@ -219,6 +242,29 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
           </div>
 
           <div>
+            <label htmlFor="currency" className="mb-1.5 block text-sm font-medium text-ink-slate">
+              Mata Uang
+            </label>
+            <select
+              id="currency"
+              value={currency}
+              onChange={(e) => {
+                setCurrency(e.target.value);
+                clearError("currency");
+              }}
+              className={inputClass}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
             <label htmlFor="interval" className="mb-1.5 block text-sm font-medium text-ink-slate">
               Siklus tagihan
             </label>
@@ -238,47 +284,47 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
               ))}
             </select>
           </div>
-        </div>
 
-        <div>
-          <label htmlFor="category" className="mb-1.5 block text-sm font-medium text-ink-slate">
-            Kategori
-          </label>
-          <select
-            id="category"
-            value={categoryId}
-            onChange={(e) => {
-              setCategoryId(e.target.value);
-              clearError("category");
-            }}
-            className={inputClass}
-            aria-invalid={!!errors.category}
-          >
-            <option value="">{NO_CATEGORY_LABEL}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-            <option value={NEW_CATEGORY_KEY}>+ Buat kategori baru…</option>
-          </select>
-          {creatingNewCategory && (
-            <input
-              type="text"
-              autoFocus
-              value={newCategoryName}
+          <div>
+            <label htmlFor="category" className="mb-1.5 block text-sm font-medium text-ink-slate">
+              Kategori
+            </label>
+            <select
+              id="category"
+              value={categoryId}
               onChange={(e) => {
-                setNewCategoryName(e.target.value);
+                setCategoryId(e.target.value);
                 clearError("category");
               }}
-              placeholder="Nama kategori baru"
-              className={`${inputClass} mt-2`}
+              className={inputClass}
               aria-invalid={!!errors.category}
-            />
-          )}
-          {errors.category && (
-            <p className="mt-1 text-sm text-rose-600">{errors.category}</p>
-          )}
+            >
+              <option value="">{NO_CATEGORY_LABEL}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+              <option value={NEW_CATEGORY_KEY}>+ Buat kategori baru…</option>
+            </select>
+            {creatingNewCategory && (
+              <input
+                type="text"
+                autoFocus
+                value={newCategoryName}
+                onChange={(e) => {
+                  setNewCategoryName(e.target.value);
+                  clearError("category");
+                }}
+                placeholder="Nama kategori baru"
+                className={`${inputClass} mt-2`}
+                aria-invalid={!!errors.category}
+              />
+            )}
+            {errors.category && (
+              <p className="mt-1 text-sm text-rose-600">{errors.category}</p>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -295,9 +341,17 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
               }}
               className={inputClass}
             >
-              <option value="active">Active</option>
-              <option value="cancelled">Cancelled</option>
+              {statusOptions.map((s) => (
+                <option key={s.value} value={s.value} disabled={!isEditMode && s.value === "overdue"}>
+                  {s.label}
+                </option>
+              ))}
             </select>
+            {!isEditMode && (
+              <p className="mt-1 text-xs text-slate-500">
+                Status "Terlewat" hanya tersedia saat mengedit biaya yang sudah jatuh tempo.
+              </p>
+            )}
           </div>
 
           <div>

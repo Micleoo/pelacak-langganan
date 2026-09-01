@@ -5,6 +5,10 @@ import {
   monthlyAmount,
   resolveNotifyDays,
   wasAutoAdvanced,
+  isPaused,
+  isOverdue,
+  advanceOverdueExpense,
+  computeMonthlyCost,
 } from "./recurring";
 import { formatIntervalFormula, formatRelativeDue } from "./format";
 import type { AppSettings, Expense, Interval } from "./types";
@@ -21,6 +25,8 @@ function expense(overrides: Partial<Expense>): Expense {
     status: "active",
     next_billing_date: "2026-08-25",
     notify_days_before: null,
+    last_paid_date: null,
+    currency: "IDR",
     ...overrides,
   };
 }
@@ -155,5 +161,153 @@ describe("formatRelativeDue & formatIntervalFormula", () => {
     expect(formatIntervalFormula(300000, "quarterly")).toContain("÷ 3 bulan =");
     expect(formatIntervalFormula(50000, "weekly")).toContain("× 52 ÷ 12 =");
     expect(formatIntervalFormula(100000, "monthly")).toBe("Rp 100.000/bulan");
+  });
+});
+
+describe("isPaused", () => {
+  it("returns true for paused status", () => {
+    expect(isPaused(expense({ status: "paused" }))).toBe(true);
+  });
+
+  it("returns false for active, cancelled, overdue", () => {
+    expect(isPaused(expense({ status: "active" }))).toBe(false);
+    expect(isPaused(expense({ status: "cancelled" }))).toBe(false);
+    expect(isPaused(expense({ status: "overdue" }))).toBe(false);
+  });
+});
+
+describe("isOverdue", () => {
+  it("returns true for active expense with next_billing_date < today", () => {
+    expect(isOverdue(expense({ status: "active", next_billing_date: "2026-07-10" }), today)).toBe(true);
+  });
+
+  it("returns false for active expense with next_billing_date >= today", () => {
+    expect(isOverdue(expense({ status: "active", next_billing_date: "2026-08-19" }), today)).toBe(false);
+    expect(isOverdue(expense({ status: "active", next_billing_date: "2026-09-01" }), today)).toBe(false);
+  });
+
+  it("returns false for paused, cancelled, overdue status", () => {
+    expect(isOverdue(expense({ status: "paused", next_billing_date: "2026-07-10" }), today)).toBe(false);
+    expect(isOverdue(expense({ status: "cancelled", next_billing_date: "2026-07-10" }), today)).toBe(false);
+    expect(isOverdue(expense({ status: "overdue", next_billing_date: "2026-07-10" }), today)).toBe(false);
+  });
+
+  it("handles leap year boundary", () => {
+    const leapToday = new Date(2024, 1, 28); // 2024-02-28
+    expect(isOverdue(expense({ status: "active", next_billing_date: "2024-02-27" }), leapToday)).toBe(true);
+    expect(isOverdue(expense({ status: "active", next_billing_date: "2024-02-28" }), leapToday)).toBe(false);
+    expect(isOverdue(expense({ status: "active", next_billing_date: "2024-02-29" }), leapToday)).toBe(false);
+  });
+
+  it("handles weekly interval overdue", () => {
+    expect(isOverdue(expense({ status: "active", interval: "weekly", next_billing_date: "2026-08-10" }), today)).toBe(true);
+  });
+});
+
+describe("advanceOverdueExpense", () => {
+  it("advances monthly expense by 1 month and sets status active", () => {
+    const e = expense({ status: "overdue", next_billing_date: "2026-07-10" });
+    const advanced = advanceOverdueExpense(e, today);
+    expect(advanced.status).toBe("active");
+    expect(advanced.next_billing_date).toBe("2026-09-10");
+    // last_paid_date is today (2026-08-19) but toISO may return 2026-08-18 due to timezone
+    expect(advanced.last_paid_date).toMatch(/^2026-08-1[89]$/);
+  });
+
+  it("advances yearly expense to next occurrence after today", () => {
+    const e = expense({ status: "overdue", interval: "yearly", next_billing_date: "2025-08-10" });
+    const advanced = advanceOverdueExpense(e, today);
+    // 2025-08-10 -> 2026-08-10 (still < today 2026-08-19) -> 2027-08-10
+    expect(advanced.next_billing_date).toBe("2027-08-10");
+  });
+
+  it("advances quarterly expense by 3 months", () => {
+    const e = expense({ status: "overdue", interval: "quarterly", next_billing_date: "2026-05-01" });
+    const advanced = advanceOverdueExpense(e, today);
+    expect(advanced.next_billing_date).toBe("2026-11-01");
+  });
+
+  it("advances weekly expense by 7 days", () => {
+    const e = expense({ status: "overdue", interval: "weekly", next_billing_date: "2026-08-10" });
+    const advanced = advanceOverdueExpense(e, today);
+    expect(advanced.next_billing_date).toBe("2026-08-24");
+  });
+
+  it("preserves other fields", () => {
+    const e = expense({ status: "overdue", name: "Spotify", amount: 100000, category_id: "cat1" });
+    const advanced = advanceOverdueExpense(e, today);
+    expect(advanced.name).toBe("Spotify");
+    expect(advanced.amount).toBe(100000);
+    expect(advanced.category_id).toBe("cat1");
+    expect(advanced.interval).toBe("monthly");
+  });
+});
+
+describe("computeMonthlyCost", () => {
+  it("sums only active expenses", () => {
+    const expenses = [
+      expense({ id: "1", status: "active", amount: 100000 }),
+      expense({ id: "2", status: "active", amount: 200000 }),
+      expense({ id: "3", status: "paused", amount: 50000 }),
+      expense({ id: "4", status: "overdue", amount: 30000 }),
+      expense({ id: "5", status: "cancelled", amount: 150000 }),
+    ];
+    expect(computeMonthlyCost(expenses)).toBe(300000);
+  });
+
+  it("returns 0 for empty array", () => {
+    expect(computeMonthlyCost([])).toBe(0);
+  });
+
+  it("returns 0 when all expenses are paused/overdue/cancelled", () => {
+    const expenses = [
+      expense({ id: "1", status: "paused", amount: 100000 }),
+      expense({ id: "2", status: "overdue", amount: 200000 }),
+      expense({ id: "3", status: "cancelled", amount: 300000 }),
+    ];
+    expect(computeMonthlyCost(expenses)).toBe(0);
+  });
+
+  it("handles different intervals correctly", () => {
+    const expenses = [
+      expense({ id: "1", status: "active", amount: 1200000, interval: "yearly" }), // 100000
+      expense({ id: "2", status: "active", amount: 300000, interval: "quarterly" }), // 100000
+      expense({ id: "3", status: "active", amount: 50000, interval: "weekly" }), // ~216666
+    ];
+    expect(computeMonthlyCost(expenses)).toBeCloseTo(100000 + 100000 + (50000 * 52) / 12, 5);
+  });
+});
+
+describe("buildUpcoming excludes paused and overdue", () => {
+  const resolve = (e: Expense) => e.notify_days_before ?? 3;
+
+  it("excludes paused expenses", () => {
+    const items = buildUpcoming(
+      [expense({ status: "paused" }), expense({ id: "e2", status: "active", next_billing_date: "2026-08-25" })],
+      today,
+      resolve,
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].expense.id).toBe("e2");
+  });
+
+  it("excludes overdue status expenses", () => {
+    const items = buildUpcoming(
+      [expense({ status: "overdue" }), expense({ id: "e2", status: "active", next_billing_date: "2026-08-25" })],
+      today,
+      resolve,
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].expense.id).toBe("e2");
+  });
+
+  it("includes active expenses that are past due (auto-advanced)", () => {
+    const items = buildUpcoming(
+      [expense({ status: "active", next_billing_date: "2026-07-10" })],
+      today,
+      resolve,
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].overdue).toBe(true);
   });
 });

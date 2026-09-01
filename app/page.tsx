@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, CheckCircle2, Pause, Play } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
-import { buildUpcoming, monthlyAmount, resolveNotifyDays } from "@/lib/recurring";
+import { buildUpcoming, monthlyAmount, resolveNotifyDays, isOverdue, advanceOverdueExpense } from "@/lib/recurring";
 import { formatDate, formatIDR, formatIDRMonthly, formatRelativeDue } from "@/lib/format";
 import { categoryIdentity } from "@/lib/categories";
 import { CategoryIcon, CATEGORY_SOLID } from "@/components/CategoryIcon";
@@ -12,13 +12,18 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PrivacyBanner } from "@/components/PrivacyBanner";
 import { OnboardingCard } from "@/components/OnboardingCard";
+import { StatusBadge } from "@/components/StatusBadge";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
+import { toast } from "react-hot-toast";
 
 export default function DashboardPage() {
-  const { expenses, categories, settings } = useStore();
+  const { expenses, categories, settings, updateExpense, advanceOverdueExpense: storeAdvanceOverdue } = useStore();
   const today = new Date();
 
   const active = expenses.filter((e) => e.status === "active");
+  const overdueExpenses = expenses.filter((e) => e.status === "overdue");
+  const pausedExpenses = expenses.filter((e) => e.status === "paused");
+
   const total = active.reduce(
     (sum, e) => sum + monthlyAmount(e.amount, e.interval),
     0,
@@ -50,6 +55,31 @@ export default function DashboardPage() {
 
   const notifyItems = upcoming.filter((u) => u.overdue || u.dueSoon);
   const showBanner = settings.in_app_enabled && notifyItems.length > 0;
+
+  async function handleMarkAsPaid(expenseId: string) {
+    const expense = expenses.find((e) => e.id === expenseId);
+    if (!expense) return;
+
+    try {
+      const advanced = advanceOverdueExpense(expense, today);
+      await storeAdvanceOverdue(expenseId, advanced.next_billing_date, advanced.last_paid_date!);
+      toast.success(`${expense.name} ditandai dibayar. Tanggal tagihan dimajukan.`);
+    } catch {
+      toast.error("Gagal mengupdate biaya. Coba lagi.");
+    }
+  }
+
+  async function handlePause(expenseId: string) {
+    const expense = expenses.find((e) => e.id === expenseId);
+    if (!expense) return;
+
+    try {
+      await updateExpense(expenseId, { ...expense, status: "paused" });
+      toast.success(`${expense.name} dijeda.`);
+    } catch {
+      toast.error("Gagal mengupdate status. Coba lagi.");
+    }
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -86,7 +116,7 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {active.length === 0 ? (
+      {active.length === 0 && overdueExpenses.length === 0 && pausedExpenses.length === 0 ? (
         <OnboardingCard />
       ) : (
         <>
@@ -111,6 +141,60 @@ export default function DashboardPage() {
               </p>
             </div>
           </section>
+
+          {overdueExpenses.length > 0 && (
+            <section className="mt-8">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-ink-slate flex items-center gap-2">
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                    {overdueExpenses.length}
+                  </span>
+                  Terlewat
+                </h2>
+              </div>
+              <Card className="p-0 overflow-hidden">
+                <ul className="divide-y divide-slate-200">
+                  {overdueExpenses.map((e) => {
+                    const rel = formatRelativeDue(e.next_billing_date, today);
+                    return (
+                      <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                        <CategoryIcon name={categoryName(e.category_id)} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <Link
+                              href={`/expenses/${e.id}/edit`}
+                              className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                            >
+                              {e.name}
+                            </Link>
+                            <StatusBadge status={e.status} />
+                            <span className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-rose-700">
+                              {rel.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {formatDate(e.next_billing_date)}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold tabular-nums text-ink-slate shrink-0">
+                          {formatIDR(e.amount)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleMarkAsPaid(e.id)}
+                          className="ds-btn-secondary inline-flex shrink-0 items-center gap-1.5 text-xs py-1.5 px-2.5"
+                          aria-label={`Tandai ${e.name} sebagai dibayar`}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                          Bayar
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            </section>
+          )}
 
           <section className="mt-8">
             <div className="mb-3 flex items-center justify-between">
@@ -165,6 +249,45 @@ export default function DashboardPage() {
               </Card>
             )}
           </section>
+
+          {pausedExpenses.length > 0 && (
+            <section className="mt-8">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-ink-slate flex items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    {pausedExpenses.length}
+                  </span>
+                  Dijeda
+                </h2>
+              </div>
+              <Card className="p-0 overflow-hidden">
+                <ul className="divide-y divide-slate-200">
+                  {pausedExpenses.map((e) => (
+                    <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                      <CategoryIcon name={categoryName(e.category_id)} size={32} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <Link
+                            href={`/expenses/${e.id}/edit`}
+                            className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                          >
+                            {e.name}
+                          </Link>
+                          <StatusBadge status={e.status} />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {formatDate(e.next_billing_date)}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold tabular-nums text-ink-slate shrink-0">
+                        {formatIDR(e.amount)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </section>
+          )}
 
           <section className="mt-8">
             <h2 className="mb-3 text-base font-semibold text-ink-slate">

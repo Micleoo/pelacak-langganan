@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { monthlyAmount } from "@/lib/recurring";
+import { monthlyAmount, advanceOverdueExpense } from "@/lib/recurring";
 import { formatDate, formatIDR, formatIDRMonthly, formatRelativeDue } from "@/lib/format";
 import { exportExpensesToCSV } from "@/lib/export-csv";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import type { Interval } from "@/lib/types";
+import { StatusBadge } from "@/components/StatusBadge";
+import type { Interval, Status } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 
@@ -21,10 +22,19 @@ const INTERVAL_LABEL: Record<Interval, string> = {
   weekly: "Mingguan",
 };
 
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "", label: "Semua" },
+  { value: "active", label: "Aktif" },
+  { value: "paused", label: "Dijeda" },
+  { value: "overdue", label: "Terlewat" },
+  { value: "cancelled", label: "Dibatalkan" },
+];
+
 export default function ExpensesPage() {
-  const { expenses, categories, deleteExpense } = useStore();
+  const { expenses, categories, deleteExpense, updateExpense, advanceOverdueExpense: storeAdvanceOverdue } = useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const categoryName = (id: string | null) =>
@@ -36,7 +46,8 @@ export default function ExpensesPage() {
       categoryFilter === "" ||
       e.category_id === categoryFilter ||
       (categoryFilter === NONE_CATEGORY_KEY && e.category_id === null);
-    return matchesQuery && matchesCategory;
+    const matchesStatus = statusFilter === "" || e.status === statusFilter;
+    return matchesQuery && matchesCategory && matchesStatus;
   });
 
   function handleExportCSV() {
@@ -46,6 +57,35 @@ export default function ExpensesPage() {
     }
     exportExpensesToCSV(expenses, categories);
     toast.success("File CSV berhasil diunduh.");
+  }
+
+  async function handlePause(e: typeof expenses[0]) {
+    try {
+      await updateExpense(e.id, { ...e, status: "paused" });
+      toast.success(`${e.name} dijeda.`);
+    } catch {
+      toast.error("Gagal mengupdate status. Coba lagi.");
+    }
+  }
+
+  async function handleResume(e: typeof expenses[0]) {
+    try {
+      await updateExpense(e.id, { ...e, status: "active" });
+      toast.success(`${e.name} diaktifkan kembali.`);
+    } catch {
+      toast.error("Gagal mengupdate status. Coba lagi.");
+    }
+  }
+
+  async function handleMarkAsPaid(e: typeof expenses[0]) {
+    try {
+      const today = new Date();
+      const advanced = advanceOverdueExpense(e, today);
+      await storeAdvanceOverdue(e.id, advanced.next_billing_date, advanced.last_paid_date!);
+      toast.success(`${e.name} ditandai dibayar. Tanggal tagihan dimajukan.`);
+    } catch {
+      toast.error("Gagal mengupdate biaya. Coba lagi.");
+    }
   }
 
   return (
@@ -110,6 +150,18 @@ export default function ExpensesPage() {
             </option>
           ))}
         </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="ds-input px-3 py-2"
+          aria-label="Filter status"
+        >
+          {STATUS_FILTERS.map((f) => (
+            <option key={f.value} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {filtered.length === 0 ? (
@@ -133,82 +185,120 @@ export default function ExpensesPage() {
       ) : (
         <Card className="p-0 overflow-hidden">
           <ul className="divide-y divide-slate-200">
-          {filtered.map((e) => (
-            <li key={e.id} className="flex items-center gap-3 px-4 py-3">
-              <CategoryIcon name={categoryName(e.category_id)} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+          {filtered.map((e) => {
+            const isOverdue = e.status === "overdue";
+            const isPaused = e.status === "paused";
+            const isActive = e.status === "active";
+            const isCancelled = e.status === "cancelled";
+
+            return (
+              <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                <CategoryIcon name={categoryName(e.category_id)} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                      href={`/expenses/${e.id}/edit`}
+                      className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                    >
+                      {e.name}
+                    </Link>
+                    <StatusBadge status={e.status as Status} />
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    {formatIDR(e.amount)} · {INTERVAL_LABEL[e.interval]} ·{" "}
+                    {formatDate(e.next_billing_date)}{" "}
+                    <span className="text-[11px] font-medium text-slate-400">
+                      ({formatRelativeDue(e.next_billing_date).label})
+                    </span>
+                  </p>
+                </div>
+                <div className="hidden text-right sm:block">
+                  <p className="text-sm font-semibold tabular-nums text-ink-slate">
+                    {formatIDRMonthly(monthlyAmount(e.amount, e.interval))}
+                  </p>
+                  <p className="text-xs text-slate-500">{categoryName(e.category_id)}</p>
+                </div>
+                <div className="flex items-center gap-1">
                   <Link
                     href={`/expenses/${e.id}/edit`}
-                    className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                    aria-label={`Edit ${e.name}`}
+                    className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-ink-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
                   >
-                    {e.name}
+                    <Pencil className="h-4 w-4" />
                   </Link>
-                  {e.status === "cancelled" && (
-                    <Badge className="bg-slate-100 text-slate-500">Berhenti</Badge>
+                  {isActive && (
+                    <button
+                      type="button"
+                      onClick={() => handlePause(e)}
+                      aria-label={`Jeda ${e.name}`}
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      title="Jeda"
+                    >
+                      <Pause className="h-4 w-4" />
+                    </button>
+                  )}
+                  {isPaused && (
+                    <button
+                      type="button"
+                      onClick={() => handleResume(e)}
+                      aria-label={`Aktifkan ${e.name}`}
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      title="Aktifkan"
+                    >
+                      <Play className="h-4 w-4" />
+                    </button>
+                  )}
+                  {isOverdue && (
+                    <button
+                      type="button"
+                      onClick={() => handleMarkAsPaid(e)}
+                      aria-label={`Tandai ${e.name} sebagai dibayar`}
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      title="Tandai dibayar"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </button>
+                  )}
+                  {confirmDeleteId === e.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await deleteExpense(e.id);
+                            toast.success("Biaya dihapus.");
+                            setConfirmDeleteId(null);
+                          } catch {
+                            toast.error("Gagal menghapus biaya.");
+                          }
+                        }}
+                        className="ds-btn-secondary px-2 py-1 text-xs"
+                      >
+                        Yakin hapus?
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        aria-label="Batal hapus"
+                        className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(e.id)}
+                      aria-label={`Hapus ${e.name}`}
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">
-                  {formatIDR(e.amount)} · {INTERVAL_LABEL[e.interval]} ·{" "}
-                  {formatDate(e.next_billing_date)}{" "}
-                  <span className="text-[11px] font-medium text-slate-400">
-                    ({formatRelativeDue(e.next_billing_date).label})
-                  </span>
-                </p>
-              </div>
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold tabular-nums text-ink-slate">
-                  {formatIDRMonthly(monthlyAmount(e.amount, e.interval))}
-                </p>
-                <p className="text-xs text-slate-500">{categoryName(e.category_id)}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                <Link
-                  href={`/expenses/${e.id}/edit`}
-                  aria-label={`Edit ${e.name}`}
-                  className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-ink-slate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Link>
-                {confirmDeleteId === e.id ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await deleteExpense(e.id);
-                          toast.success("Biaya dihapus.");
-                          setConfirmDeleteId(null);
-                        } catch {
-                          toast.error("Gagal menghapus biaya.");
-                        }
-                      }}
-                      className="ds-btn-secondary px-2 py-1 text-xs"
-                    >
-                      Yakin hapus?
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDeleteId(null)}
-                      aria-label="Batal hapus"
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDeleteId(e.id)}
-                    aria-label={`Hapus ${e.name}`}
-                    className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
         </Card>
       )}

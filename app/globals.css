@@ -88,6 +88,10 @@ p {
 .ds-input:focus { outline: none; border-color: var(--color-primary-600, #0d9488); box-shadow: 0 0 0 3px var(--color-primary-100, #ccfbf1); }
 
 .ds-chip { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-size: 12px; font-weight: 600; background: var(--color-accent-100, #fef3c7); color: var(--color-accent-800, #92400e); border-radius: 999px; padding: 4px 10px; display: inline-flex; align-items: center; }
+.ds-chip-default { background: var(--color-primary-100, #ccfbf1); color: var(--color-primary-800, #115e59); }
+.ds-chip-secondary { background: var(--color-slate-100, #f1f5f9); color: var(--color-slate-700, #334155); }
+.ds-chip-destructive { background: var(--color-rose-100, #ffe4e6); color: var(--color-rose-800, #9f1239); }
+.ds-chip-outline { background: transparent; color: var(--color-slate-700, #334155); border: 1px solid var(--color-slate-300, #cbd5e1); }
 
 .ds-card { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); color: #0f172a; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
 

@@ -98,7 +98,7 @@ describe("Store", () => {
 
   it("loads data successfully", async () => {
     const mockExpenses: Expense[] = [
-      { id: "1", name: "Netflix", amount: 150000, interval: "monthly", category_id: null, status: "active", next_billing_date: "2026-08-25", notify_days_before: null, created_at: "2026-08-01" },
+      { id: "1", name: "Netflix", amount: 150000, interval: "monthly", category_id: null, status: "active", next_billing_date: "2026-08-25", notify_days_before: null, last_paid_date: null, currency: "IDR", created_at: "2026-08-01" },
     ];
     const mockCategories: Category[] = [
       { id: "cat1", name: "Streaming", created_at: "2026-08-01" },
@@ -109,6 +109,7 @@ describe("Store", () => {
       email_enabled: false,
       in_app_enabled: true,
       user_email: null,
+      base_currency: "IDR",
     };
 
     setupMocks(mockExpenses, mockCategories, mockSettings, null);

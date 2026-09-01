@@ -89,6 +89,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       );
     },
 
+    async advanceOverdueExpense(id, nextBillingDate, lastPaidDate) {
+      await adapterRef.current!.advanceOverdueExpense(id, nextBillingDate, lastPaidDate);
+      setExpenses((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? { ...e, status: "active" as const, next_billing_date: nextBillingDate, last_paid_date: lastPaidDate }
+            : e
+        ),
+      );
+    },
+
     async addCategory(input) {
       const category = await adapterRef.current!.addCategory(input);
       setCategories((prev) => [...prev, category]);
@@ -131,6 +142,7 @@ function defaultSettings(): AppSettings {
     email_enabled: false,
     in_app_enabled: true,
     user_email: null,
+    base_currency: "IDR",
   };
 }
 

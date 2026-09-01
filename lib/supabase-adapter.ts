@@ -13,6 +13,7 @@ type AdapterMethods = Pick<
   | "updateExpense"
   | "deleteExpense"
   | "updateExpenseNotifyDays"
+  | "advanceOverdueExpense"
   | "addCategory"
   | "renameCategory"
   | "deleteCategory"
@@ -58,6 +59,19 @@ export function createSupabaseAdapter(
       const { error } = await supabase
         .from("expenses")
         .update({ notify_days_before })
+        .eq("id", id);
+      if (error) throw error;
+    },
+
+    async advanceOverdueExpense(id, nextBillingDate, lastPaidDate) {
+      const { error } = await supabase
+        .from("expenses")
+        .update({
+          status: "active",
+          next_billing_date: nextBillingDate,
+          last_paid_date: lastPaidDate,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", id);
       if (error) throw error;
     },
@@ -129,5 +143,6 @@ function defaultSettings(): AppSettings {
     email_enabled: false,
     in_app_enabled: true,
     user_email: null,
+    base_currency: "IDR",
   };
 }
