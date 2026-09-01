@@ -133,7 +133,7 @@ export default function DashboardPage() {
               <p className="text-sm font-medium text-primary-700">
                 Total biaya bulanan
               </p>
-              <p className="mt-1 text-5xl font-bold tabular-nums text-ink-slate">
+              <p className="mt-1 text-3xl sm:text-4xl md:text-5xl font-bold tabular-nums text-ink-slate">
                 {formatIDRMonthly(total)}
               </p>
               <p className="mt-2 text-xs text-primary-700">
