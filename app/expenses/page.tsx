@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { monthlyAmount, advanceOverdueExpense } from "@/lib/recurring";
-import { formatDate, formatIDR, formatIDRMonthly, formatRelativeDue } from "@/lib/format";
+import { monthlyAmount, advanceOverdueExpense, monthlyAmountInBaseCurrency } from "@/lib/recurring";
+import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
 import { exportExpensesToCSV } from "@/lib/export-csv";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import type { Interval, Status } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
+import type { Currency } from "@/lib/currencies";
 
 const INTERVAL_LABEL: Record<Interval, string> = {
   monthly: "Bulanan",
@@ -31,11 +32,13 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
 ];
 
 export default function ExpensesPage() {
-  const { expenses, categories, deleteExpense, updateExpense, advanceOverdueExpense: storeAdvanceOverdue } = useStore();
+  const { expenses, categories, settings, deleteExpense, updateExpense, advanceOverdueExpense: storeAdvanceOverdue } = useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const baseCurrency = (settings?.base_currency as Currency) ?? "IDR";
 
   const categoryName = (id: string | null) =>
     categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
@@ -191,6 +194,8 @@ export default function ExpensesPage() {
             const isActive = e.status === "active";
             const isCancelled = e.status === "cancelled";
 
+            const monthlyConverted = monthlyAmountInBaseCurrency(e, baseCurrency);
+
             return (
               <li key={e.id} className="flex items-center gap-3 px-4 py-3">
                 <CategoryIcon name={categoryName(e.category_id)} />
@@ -205,7 +210,7 @@ export default function ExpensesPage() {
                     <StatusBadge status={e.status as Status} />
                   </div>
                   <p className="text-xs text-slate-500">
-                    {formatIDR(e.amount)} · {INTERVAL_LABEL[e.interval]} ·{" "}
+                    {formatAmount(e.amount, e.currency as Currency)} · {INTERVAL_LABEL[e.interval]} ·{" "}
                     {formatDate(e.next_billing_date)}{" "}
                     <span className="text-[11px] font-medium text-slate-400">
                       ({formatRelativeDue(e.next_billing_date).label})
@@ -214,8 +219,13 @@ export default function ExpensesPage() {
                 </div>
                 <div className="hidden text-right sm:block">
                   <p className="text-sm font-semibold tabular-nums text-ink-slate">
-                    {formatIDRMonthly(monthlyAmount(e.amount, e.interval))}
+                    {formatAmountMonthly(monthlyConverted, baseCurrency)}
                   </p>
+                  {e.currency !== baseCurrency && (
+                    <p className="text-xs text-slate-500">
+                      ({formatAmountMonthly(monthlyAmount(e.amount, e.interval), e.currency as Currency)})
+                    </p>
+                  )}
                   <p className="text-xs text-slate-500">{categoryName(e.category_id)}</p>
                 </div>
                 <div className="flex items-center gap-1">

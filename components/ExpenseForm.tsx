@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
-import { monthlyAmount } from "@/lib/recurring";
-import { formatIDRMonthly, formatIntervalFormula } from "@/lib/format";
+import { monthlyAmount, monthlyAmountInBaseCurrency } from "@/lib/recurring";
+import { formatAmountMonthly, formatIntervalFormula } from "@/lib/format";
 import type { Expense, Interval, Status } from "@/lib/types";
+import { type Currency, SUPPORTED_CURRENCIES, CURRENCY_LABELS } from "@/lib/currencies";
 import { Button } from "./ui/Button";
 import { toast } from "react-hot-toast";
 import { ensureCategory } from "@/lib/categories";
@@ -30,8 +31,6 @@ const STATUSES_EDIT: { value: Status; label: string }[] = [
   { value: "overdue", label: "Terlewat" },
   { value: "cancelled", label: "Dibatalkan" },
 ];
-
-const CURRENCIES = ["IDR", "USD", "EUR", "SGD"] as const;
 
 function todayISO(): string {
   const d = new Date();
@@ -128,9 +127,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
         }
       }
 
+      const numVal = Number(amount);
       const input = {
         name: name.trim(),
-        amount: Math.round(Number(amount)),
+        amount: currency === "IDR" ? Math.round(numVal) : Number(numVal.toFixed(2)),
         interval,
         category_id: finalCategoryId,
         status,
@@ -225,14 +225,14 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
               id="amount"
               type="number"
               min="0"
-              step="1"
-              inputMode="numeric"
+              step={currency === "IDR" ? "1" : "0.01"}
+              inputMode={currency === "IDR" ? "numeric" : "decimal"}
               value={amount}
               onChange={(e) => {
                 setAmount(e.target.value);
                 clearError("amount");
               }}
-              placeholder="149000"
+              placeholder={currency === "IDR" ? "149000" : "9.99"}
               className={`${inputClass} tabular-nums`}
               aria-invalid={!!errors.amount}
             />
@@ -254,9 +254,9 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
               }}
               className={inputClass}
             >
-              {CURRENCIES.map((c) => (
+              {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {CURRENCY_LABELS[c]}
                 </option>
               ))}
             </select>
@@ -390,13 +390,18 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
             )}
           </div>
           <p className="text-2xl font-bold tabular-nums text-ink-slate">
-            {formatIDRMonthly(monthly)}
+            {formatAmountMonthly(monthly, currency as Currency)}
           </p>
+          {currency !== baseCurrency && (
+            <p className="text-xs text-slate-500">
+              ~{formatAmountMonthly(monthlyAmountInBaseCurrency({ amount: numAmount, interval, currency }, baseCurrency as Currency), baseCurrency as Currency)} (dikonversi ke {baseCurrency})
+            </p>
+          )}
           <p className="text-xs text-primary-700/90 pt-0.5">
             {interval === "monthly"
               ? "Dihitung tetap per bulan."
               : numAmount > 0
-              ? `Rumus: ${formatIntervalFormula(numAmount, interval)}`
+              ? `Rumus: ${formatIntervalFormula(numAmount, interval, currency as Currency)}`
               : "Masukkan nominal untuk melihat rincian normalisasi."}
           </p>
         </div>

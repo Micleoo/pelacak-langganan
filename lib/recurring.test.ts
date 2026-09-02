@@ -9,6 +9,8 @@ import {
   isOverdue,
   advanceOverdueExpense,
   computeMonthlyCost,
+  monthlyAmountInBaseCurrency,
+  computeCategoryBreakdown,
 } from "./recurring";
 import { formatIntervalFormula, formatRelativeDue } from "./format";
 import type { AppSettings, Expense, Interval } from "./types";
@@ -275,6 +277,41 @@ describe("computeMonthlyCost", () => {
       expense({ id: "3", status: "active", amount: 50000, interval: "weekly" }), // ~216666
     ];
     expect(computeMonthlyCost(expenses)).toBeCloseTo(100000 + 100000 + (50000 * 52) / 12, 5);
+  });
+
+  it("converts mixed currency expenses to base currency correctly", () => {
+    const expenses = [
+      expense({ id: "1", status: "active", amount: 100000, currency: "IDR" }), // 100000 IDR
+      expense({ id: "2", status: "active", amount: 10, currency: "USD" }), // 10 * 15500 = 155000 IDR
+    ];
+    // Total in IDR = 100000 + 155000 = 255000
+    expect(computeMonthlyCost(expenses, "IDR")).toBe(255000);
+    // Total in USD = 255000 / 15500 = 16.4516
+    expect(computeMonthlyCost(expenses, "USD")).toBeCloseTo(255000 / 15500, 4);
+  });
+});
+
+describe("monthlyAmountInBaseCurrency", () => {
+  it("computes monthly amount and converts to base currency", () => {
+    const e = expense({ amount: 120, interval: "yearly", currency: "USD" }); // $10/month
+    // $10 in IDR = 155000 IDR
+    expect(monthlyAmountInBaseCurrency(e, "IDR")).toBe(155000);
+    expect(monthlyAmountInBaseCurrency(e, "USD")).toBe(10);
+  });
+});
+
+describe("computeCategoryBreakdown", () => {
+  it("groups active expenses by category in base currency", () => {
+    const expenses = [
+      expense({ id: "1", category_id: "cat1", amount: 100000, currency: "IDR", status: "active" }),
+      expense({ id: "2", category_id: "cat1", amount: 10, currency: "USD", status: "active" }), // 155000 IDR
+      expense({ id: "3", category_id: null, amount: 50000, currency: "IDR", status: "active" }),
+      expense({ id: "4", category_id: "cat1", amount: 500000, status: "paused" }),
+    ];
+
+    const breakdown = computeCategoryBreakdown(expenses, "IDR");
+    expect(breakdown.get("cat1")).toBe(255000);
+    expect(breakdown.get("__none__")).toBe(50000);
   });
 });
 

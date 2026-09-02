@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Download, Mail, ShieldCheck } from "lucide-react";
+import { Bell, Download, Mail, ShieldCheck, Globe } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { resolveNotifyDays } from "@/lib/recurring";
 import { exportExpensesToCSV } from "@/lib/export-csv";
@@ -9,6 +9,7 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { toast } from "react-hot-toast";
 import { NO_CATEGORY_LABEL } from "@/lib/constants";
+import { SUPPORTED_CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currencies";
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -378,6 +379,38 @@ export default function SettingsPage() {
             </ul>
           )}
         </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+              <Globe className="h-5 w-5" aria-hidden />
+            </span>
+            <div className="flex-1">
+              <h2 className="text-sm font-medium text-ink-slate">Mata Uang Dasar</h2>
+              <p className="text-xs text-slate-500">
+                Semua total dan rincian dikonversi ke mata uang ini. Kurs tetap (statis) untuk IDR, USD, EUR, SGD.
+              </p>
+            </div>
+          </div>
+          <select
+            value={settings.base_currency}
+            onChange={(e) => {
+              const v = e.target.value as Currency;
+              updateSettings({ ...settings, base_currency: v })
+                .then(() => toast.success(`Mata uang dasar diubah ke ${CURRENCY_LABELS[v]}.`))
+                .catch(() => toast.error("Gagal memperbarui pengaturan."));
+            }}
+            className={inputClass}
+            aria-label="Mata uang dasar"
+          >
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {CURRENCY_LABELS[c]}
+              </option>
+            ))}
+          </select>
+        </Card>
+
         <Card className="p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">

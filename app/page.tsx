@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
-import { Plus, CheckCircle2, Pause, Play } from "lucide-react";
+import { Plus, CheckCircle2, Pause } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
-import { buildUpcoming, monthlyAmount, resolveNotifyDays, isOverdue, advanceOverdueExpense } from "@/lib/recurring";
-import { formatDate, formatIDR, formatIDRMonthly, formatRelativeDue } from "@/lib/format";
+import { buildUpcoming, resolveNotifyDays, advanceOverdueExpense, computeMonthlyCost, computeCategoryBreakdown, monthlyAmountInBaseCurrency } from "@/lib/recurring";
+import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
 import { categoryIdentity } from "@/lib/categories";
 import { CategoryIcon, CATEGORY_SOLID } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
@@ -15,6 +14,7 @@ import { OnboardingCard } from "@/components/OnboardingCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 import { toast } from "react-hot-toast";
+import type { Currency } from "@/lib/currencies";
 
 export default function DashboardPage() {
   const { expenses, categories, settings, updateExpense, advanceOverdueExpense: storeAdvanceOverdue } = useStore();
@@ -24,23 +24,14 @@ export default function DashboardPage() {
   const overdueExpenses = expenses.filter((e) => e.status === "overdue");
   const pausedExpenses = expenses.filter((e) => e.status === "paused");
 
-  const total = active.reduce(
-    (sum, e) => sum + monthlyAmount(e.amount, e.interval),
-    0,
-  );
+  const baseCurrency = (settings?.base_currency as Currency) ?? "IDR";
+  const total = computeMonthlyCost(expenses, baseCurrency);
 
   const categoryName = (id: string | null) =>
     categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
 
-  const byCategory = new Map<string, number>();
-  for (const e of active) {
-    const key = e.category_id ?? NONE_CATEGORY_KEY;
-    byCategory.set(
-      key,
-      (byCategory.get(key) ?? 0) + monthlyAmount(e.amount, e.interval),
-    );
-  }
-  const breakdown = [...byCategory.entries()]
+  const categoryBreakdownMap = computeCategoryBreakdown(expenses, baseCurrency);
+  const breakdown = [...categoryBreakdownMap.entries()]
     .map(([key, value]) => ({
       key,
       name: key === NONE_CATEGORY_KEY ? NO_CATEGORY_LABEL : categoryName(key),
@@ -134,8 +125,13 @@ export default function DashboardPage() {
                 Total biaya bulanan
               </p>
               <p className="mt-1 text-3xl sm:text-4xl md:text-5xl font-bold tabular-nums text-ink-slate">
-                {formatIDRMonthly(total)}
+                {formatAmountMonthly(total, baseCurrency)}
               </p>
+              {baseCurrency !== "IDR" && (
+                <p className="mt-1 text-xs text-primary-700/80">
+                  (Mata uang dasar: {baseCurrency})
+                </p>
+              )}
               <p className="mt-2 text-xs text-primary-700">
                 {active.length} biaya berlangganan aktif
               </p>
@@ -156,6 +152,7 @@ export default function DashboardPage() {
                 <ul className="divide-y divide-slate-200">
                   {overdueExpenses.map((e) => {
                     const rel = formatRelativeDue(e.next_billing_date, today);
+                    const monthlyConverted = monthlyAmountInBaseCurrency(e, baseCurrency);
                     return (
                       <li key={e.id} className="flex items-center gap-3 px-4 py-3">
                         <CategoryIcon name={categoryName(e.category_id)} size={32} />
@@ -176,9 +173,16 @@ export default function DashboardPage() {
                             {formatDate(e.next_billing_date)}
                           </p>
                         </div>
-                        <p className="text-sm font-semibold tabular-nums text-ink-slate shrink-0">
-                          {formatIDR(e.amount)}
-                        </p>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold tabular-nums text-ink-slate">
+                            {formatAmount(e.amount, e.currency as Currency)}
+                          </p>
+                          {e.currency !== baseCurrency && (
+                            <p className="text-xs text-slate-500">
+                              ~{formatAmountMonthly(monthlyConverted, baseCurrency)}
+                            </p>
+                          )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => handleMarkAsPaid(e.id)}
@@ -214,6 +218,7 @@ export default function DashboardPage() {
                 <ul className="divide-y divide-slate-200">
                   {upcoming.map(({ expense: e, effectiveDate, overdue, dueSoon }) => {
                     const rel = formatRelativeDue(effectiveDate, today);
+                    const monthlyConverted = monthlyAmountInBaseCurrency(e, baseCurrency);
                     return (
                       <li key={e.id} className="flex items-center gap-3 px-4 py-3">
                         <CategoryIcon name={categoryName(e.category_id)} size={32} />
@@ -239,9 +244,16 @@ export default function DashboardPage() {
                             {formatDate(effectiveDate)}
                           </p>
                         </div>
-                        <p className="text-sm font-semibold tabular-nums text-ink-slate shrink-0">
-                          {formatIDR(e.amount)}
-                        </p>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold tabular-nums text-ink-slate">
+                            {formatAmount(e.amount, e.currency as Currency)}
+                          </p>
+                          {e.currency !== baseCurrency && (
+                            <p className="text-xs text-slate-500">
+                              ~{formatAmountMonthly(monthlyConverted, baseCurrency)}
+                            </p>
+                          )}
+                        </div>
                       </li>
                     );
                   })}
@@ -262,28 +274,38 @@ export default function DashboardPage() {
               </div>
               <Card className="p-0 overflow-hidden">
                 <ul className="divide-y divide-slate-200">
-                  {pausedExpenses.map((e) => (
-                    <li key={e.id} className="flex items-center gap-3 px-4 py-3">
-                      <CategoryIcon name={categoryName(e.category_id)} size={32} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                          <Link
-                            href={`/expenses/${e.id}/edit`}
-                            className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
-                          >
-                            {e.name}
-                          </Link>
-                          <StatusBadge status={e.status} />
+                  {pausedExpenses.map((e) => {
+                    const monthlyConverted = monthlyAmountInBaseCurrency(e, baseCurrency);
+                    return (
+                      <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                        <CategoryIcon name={categoryName(e.category_id)} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <Link
+                              href={`/expenses/${e.id}/edit`}
+                              className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                            >
+                              {e.name}
+                            </Link>
+                            <StatusBadge status={e.status} />
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {formatDate(e.next_billing_date)}
+                          </p>
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {formatDate(e.next_billing_date)}
-                        </p>
-                      </div>
-                      <p className="text-sm font-semibold tabular-nums text-ink-slate shrink-0">
-                        {formatIDR(e.amount)}
-                      </p>
-                    </li>
-                  ))}
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold tabular-nums text-ink-slate">
+                            {formatAmount(e.amount, e.currency as Currency)}
+                          </p>
+                          {e.currency !== baseCurrency && (
+                            <p className="text-xs text-slate-500">
+                              ~{formatAmountMonthly(monthlyConverted, baseCurrency)}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </Card>
             </section>
@@ -304,7 +326,7 @@ export default function DashboardPage() {
                           {b.name}
                         </p>
                         <p className="text-sm font-semibold tabular-nums text-ink-slate">
-                          {formatIDRMonthly(b.value)}
+                          {formatAmountMonthly(b.value, baseCurrency)}
                         </p>
                       </div>
                       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">

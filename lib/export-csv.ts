@@ -1,6 +1,13 @@
-import type { Category, Expense } from "./types";
+import type { Category, Expense, Status } from "./types";
 import { monthlyAmount } from "./recurring";
 import { NO_CATEGORY_LABEL } from "./constants";
+
+const STATUS_LABELS: Record<Status, string> = {
+  active: "Aktif",
+  paused: "Dijeda",
+  overdue: "Terlewat",
+  cancelled: "Dibatalkan",
+};
 
 export function generateCSVContent(expenses: Expense[], categories: Category[]): string {
   const categoryMap = new Map<string, string>();
@@ -9,9 +16,10 @@ export function generateCSVContent(expenses: Expense[], categories: Category[]):
   const headers = [
     "Nama Layanan",
     "Kategori",
-    "Nominal Asli (IDR)",
+    "Mata Uang",
+    "Nominal Asli",
     "Siklus Tagihan",
-    "Nominal Bulanan (IDR)",
+    "Nominal Bulanan",
     "Tanggal Tagihan Berikutnya",
     "Status",
     "Timing Pengingat (Hari)",
@@ -27,15 +35,17 @@ export function generateCSVContent(expenses: Expense[], categories: Category[]):
     const catName = e.category_id ? categoryMap.get(e.category_id) ?? NO_CATEGORY_LABEL : NO_CATEGORY_LABEL;
     const monthlyVal = monthlyAmount(e.amount, e.interval);
     const notifyStr = e.notify_days_before !== null && e.notify_days_before !== undefined ? `H-${e.notify_days_before}` : "Global";
+    const statusLabel = STATUS_LABELS[e.status] ?? e.status;
 
     return [
       escapeCSV(e.name),
       escapeCSV(catName),
+      escapeCSV(e.currency || "IDR"),
       escapeCSV(e.amount),
       escapeCSV(e.interval),
       escapeCSV(monthlyVal),
       escapeCSV(e.next_billing_date),
-      escapeCSV(e.status === "active" ? "Aktif" : "Dibatalkan"),
+      escapeCSV(statusLabel),
       escapeCSV(notifyStr),
     ].join(",");
   });

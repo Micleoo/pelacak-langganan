@@ -1,15 +1,19 @@
-const idr = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-});
+import { formatCurrency, formatCurrencyMonthly, type Currency } from "./currencies";
 
 export function formatIDR(amount: number): string {
-  return idr.format(amount);
+  return formatCurrency(amount, "IDR");
 }
 
 export function formatIDRMonthly(amount: number): string {
-  return `${idr.format(amount)}/bln`;
+  return formatCurrencyMonthly(amount, "IDR");
+}
+
+export function formatAmount(amount: number, currency: Currency | string): string {
+  return formatCurrency(amount, currency);
+}
+
+export function formatAmountMonthly(amount: number, currency: Currency | string): string {
+  return formatCurrencyMonthly(amount, currency);
 }
 
 export function formatDate(iso: string): string {
@@ -75,17 +79,18 @@ export function formatRelativeDue(
 
 export function formatIntervalFormula(
   amount: number,
-  interval: "monthly" | "yearly" | "quarterly" | "weekly"
+  interval: "monthly" | "yearly" | "quarterly" | "weekly",
+  currency: Currency | string = "IDR"
 ): string {
   switch (interval) {
     case "yearly":
-      return `${formatIDR(amount)} ÷ 12 bulan = ${formatIDR(Math.round(amount / 12))}/bulan`;
+      return `${formatAmount(amount, currency)} ÷ 12 bulan = ${formatAmount(Math.round(amount / 12), currency)}/bulan`;
     case "quarterly":
-      return `${formatIDR(amount)} ÷ 3 bulan = ${formatIDR(Math.round(amount / 3))}/bulan`;
+      return `${formatAmount(amount, currency)} ÷ 3 bulan = ${formatAmount(Math.round(amount / 3), currency)}/bulan`;
     case "weekly":
-      return `${formatIDR(amount)} × 52 ÷ 12 = ${formatIDR(Math.round((amount * 52) / 12))}/bulan`;
+      return `${formatAmount(amount, currency)} × 52 ÷ 12 = ${formatAmount(Math.round((amount * 52) / 12), currency)}/bulan`;
     case "monthly":
     default:
-      return `${formatIDR(amount)}/bulan`;
+      return `${formatAmount(amount, currency)}/bulan`;
   }
 }
