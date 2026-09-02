@@ -1,3 +1,5 @@
+import type { Currency } from "./currencies";
+
 export type Interval = "monthly" | "yearly" | "quarterly" | "weekly";
 
 export type Status = "active" | "cancelled" | "paused" | "overdue";
@@ -18,7 +20,7 @@ export interface Expense {
   next_billing_date: string;
   notify_days_before: number | null;
   last_paid_date: string | null;
-  currency: string;
+  currency: Currency;
   created_at?: string;
 }
 
@@ -28,5 +30,15 @@ export interface AppSettings {
   email_enabled: boolean;
   in_app_enabled: boolean;
   user_email: string | null;
-  base_currency: string;
+  base_currency: Currency;
+}
+
+export interface PaymentRecord {
+  id: string;
+  expense_id: string;
+  amount_paid: number;
+  currency: Currency;
+  paid_at: string;
+  month_key: string;
+  created_at: string;
 }

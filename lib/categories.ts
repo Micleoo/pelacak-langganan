@@ -14,6 +14,17 @@ export const CATEGORY_COLOR_TOKENS = [
 
 export type CategoryColorToken = (typeof CATEGORY_COLOR_TOKENS)[number];
 
+export const CATEGORY_HEX: Record<CategoryColorToken, string> = {
+  "cat-1": "#0d9488",
+  "cat-2": "#d97706",
+  "cat-3": "#475569",
+  "cat-4": "#2563eb",
+  "cat-5": "#059669",
+  "cat-6": "#7c3aed",
+  "cat-7": "#e11d48",
+  "cat-8": "#ea580c",
+};
+
 const KNOWN_CATEGORIES: Record<string, CategoryColorToken> = {
   Streaming: "cat-1",
   "AI Tools": "cat-2",

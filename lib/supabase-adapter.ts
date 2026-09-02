@@ -4,6 +4,8 @@ import type {
   CategoryInput,
   DataStore,
   ExpenseInput,
+  PaymentHistoryInput,
+  PaymentRecord,
   SettingsInput,
 } from "./data";
 
@@ -18,6 +20,8 @@ type AdapterMethods = Pick<
   | "renameCategory"
   | "deleteCategory"
   | "updateSettings"
+  | "fetchPaymentHistory"
+  | "addPaymentHistory"
 >;
 
 export interface SupabaseAdapter extends AdapterMethods {
@@ -25,6 +29,7 @@ export interface SupabaseAdapter extends AdapterMethods {
     expenses: Expense[];
     categories: Category[];
     settings: AppSettings;
+    paymentHistory: PaymentRecord[];
   }>;
 }
 
@@ -110,25 +115,48 @@ export function createSupabaseAdapter(
       return data as AppSettings;
     },
 
+    async fetchPaymentHistory(): Promise<PaymentRecord[]> {
+      const { data, error } = await supabase
+        .from("payment_history")
+        .select("*")
+        .order("paid_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+
+    async addPaymentHistory(input): Promise<PaymentRecord> {
+      const { data, error } = await supabase
+        .from("payment_history")
+        .insert(input)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as PaymentRecord;
+    },
+
     async fetchAll(): Promise<{
       expenses: Expense[];
       categories: Category[];
       settings: AppSettings;
+      paymentHistory: PaymentRecord[];
     }> {
-      const [expRes, catRes, setRes] = await Promise.all([
+      const [expRes, catRes, setRes, payRes] = await Promise.all([
         supabase.from("expenses").select("*").order("created_at", { ascending: true }),
         supabase.from("categories").select("*").order("name", { ascending: true }),
         supabase.from("app_settings").select("*").limit(1).maybeSingle(),
+        supabase.from("payment_history").select("*").order("paid_at", { ascending: false }),
       ]);
 
       if (expRes.error) throw expRes.error;
       if (catRes.error) throw catRes.error;
       if (setRes.error) throw setRes.error;
+      if (payRes.error) throw payRes.error;
 
       return {
         expenses: expRes.data ?? [],
         categories: catRes.data ?? [],
         settings: setRes.data ?? defaultSettings(),
+        paymentHistory: payRes.data ?? [],
       };
     },
   };

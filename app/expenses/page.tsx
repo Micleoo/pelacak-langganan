@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2 } from "lucide-react";
+import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2, Upload, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { monthlyAmount, advanceOverdueExpense, monthlyAmountInBaseCurrency } from "@/lib/recurring";
 import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
@@ -15,6 +15,8 @@ import type { Interval, Status } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 import type { Currency } from "@/lib/currencies";
+import { parseCSV, validateRows, CSV_TEMPLATE, importExpenses, type ParsedRow, type ImportError } from "@/lib/import-csv";
+import { ensureCategory } from "@/lib/categories";
 
 const INTERVAL_LABEL: Record<Interval, string> = {
   monthly: "Bulanan",
@@ -32,7 +34,7 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
 ];
 
 export default function ExpensesPage() {
-  const { expenses, categories, settings, deleteExpense, updateExpense, advanceOverdueExpense: storeAdvanceOverdue } = useStore();
+  const { expenses, categories, settings, deleteExpense, updateExpense, advanceOverdueExpense: storeAdvanceOverdue, addCategory, addExpense } = useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -91,6 +93,92 @@ export default function ExpensesPage() {
     }
   }
 
+  // CSV Import state
+  const [importOpen, setImportOpen] = useState(true);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
+  const [validationResult, setValidationResult] = useState<{ valid: any[]; errors: ImportError[] } | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+
+  function handleFileSelect(file: File) {
+    if (!file.name.endsWith(".csv")) {
+      toast.error("File harus berformat .csv");
+      return;
+    }
+    setCsvFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const rows = parseCSV(text);
+      setParsedRows(rows);
+      const result = validateRows(rows, categories);
+      setValidationResult(result);
+    };
+    reader.readAsText(file);
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  }
+
+  function handleImport() {
+    if (!validationResult || validationResult.valid.length === 0) {
+      toast.error("Tidak ada baris valid untuk diimpor");
+      return;
+    }
+    setImportLoading(true);
+    (async () => {
+      try {
+        // First, create any new categories
+        const newCategoryNames = new Set<string>();
+        for (const row of validationResult.valid) {
+          if (row.category_id === null && parsedRows.find(r => r.name === row.name)?.category) {
+            const catName = parsedRows.find(r => r.name === row.name)?.category;
+            if (catName && !categories.find(c => c.name.toLowerCase() === catName.toLowerCase())) {
+              newCategoryNames.add(catName);
+            }
+          }
+        }
+        for (const catName of newCategoryNames) {
+          await ensureCategory({ categories, addCategory } as any, catName);
+        }
+
+        // Now import expenses
+        const result = await importExpenses(validationResult.valid, {
+          addExpense,
+          addCategory,
+          expenses,
+        });
+        toast.success(`Berhasil import ${result.imported}, dilewati ${result.skipped} baris error`);
+        setCsvFile(null);
+        setParsedRows([]);
+        setValidationResult(null);
+        setImportOpen(false);
+      } catch (err) {
+        console.error("Import failed:", err);
+        toast.error("Gagal mengimpor data");
+      } finally {
+        setImportLoading(false);
+      }
+    })();
+  }
+
+  function downloadTemplate() {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "template-import-biaya.csv";
+    link.click();
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -120,6 +208,168 @@ export default function ExpensesPage() {
           </Link>
         </div>
       </div>
+
+      {/* CSV Import Section */}
+      <Card className="mb-6">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+          <h3 className="flex items-center gap-2 text-base font-medium text-ink-slate">
+            <FileText className="h-5 w-5 text-primary-600" aria-hidden />
+            Import CSV
+          </h3>
+          <button
+            type="button"
+            onClick={() => setImportOpen(!importOpen)}
+            className="text-slate-500 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-full p-1"
+            aria-label={importOpen ? "Tutup import" : "Buka import"}
+            aria-expanded={importOpen}
+          >
+            {importOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+          </button>
+        </div>
+
+        {importOpen && (
+          <div className="p-4 space-y-4">
+            {!csvFile ? (
+              <div
+                className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-primary-400 hover:bg-primary-50 transition-colors"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
+                <Upload className="h-12 w-12 mx-auto text-slate-400 mb-3" aria-hidden />
+                <p className="text-sm font-medium text-ink-slate">Seret file CSV ke sini atau klik untuk pilih</p>
+                <p className="text-xs text-slate-500 mt-1">Format: .csv (maksimal 1MB)</p>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  id="csv-file-input"
+                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("csv-file-input")?.click()}
+                  className="ds-btn-primary mt-4 inline-flex items-center gap-1.5"
+                >
+                  <FileText className="h-4 w-4" aria-hidden />
+                  Pilih File
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-ink-slate">
+                    {csvFile.name} ({(csvFile.size / 1024).toFixed(1)} KB)
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCsvFile(null);
+                      setParsedRows([]);
+                      setValidationResult(null);
+                    }}
+                    className="text-slate-500 hover:text-slate-700 text-sm"
+                  >
+                    Hapus file
+                  </button>
+                </div>
+
+                {validationResult && (
+                  <>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                        <CheckCircle className="h-3.5 w-3.5" aria-hidden />
+                        {validationResult.valid.length} baris valid
+                      </span>
+                      {validationResult.errors.length > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">
+                          <AlertCircle className="h-3.5 w-3.5" aria-hidden />
+                          {validationResult.errors.length} baris error
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="max-h-64 overflow-auto rounded-lg border border-slate-200">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-slate-50">
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Nama</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Nominal</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Interval</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Kategori</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Status</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Tanggal</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Mata Uang</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Validasi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {parsedRows.map((row, index) => {
+                            const error = validationResult.errors.find((e) => e.rowIndex === index + 2);
+                            const isValid = !error;
+                            return (
+                              <tr key={index} className={isValid ? "" : "bg-rose-50"}>
+                                <td className="px-3 py-2 truncate max-w-[150px]">{row.name}</td>
+                                <td className="px-3 py-2 tabular-nums">{row.amount}</td>
+                                <td className="px-3 py-2">{row.interval}</td>
+                                <td className="px-3 py-2">{row.category || "—"}</td>
+                                <td className="px-3 py-2">{row.status || "active"}</td>
+                                <td className="px-3 py-2">{row.next_billing_date}</td>
+                                <td className="px-3 py-2">{row.currency || "IDR"}</td>
+                                <td className="px-3 py-2">
+                                  {isValid ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px]">
+                                      <CheckCircle className="h-3 w-3" aria-hidden />
+                                      Valid
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[11px]" title={error?.message}>
+                                      <AlertCircle className="h-3 w-3" aria-hidden />
+                                      Error
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={downloadTemplate}
+                        className="ds-btn-secondary inline-flex items-center gap-1.5 text-xs"
+                      >
+                        <FileText className="h-4 w-4" aria-hidden />
+                        Unduh Template CSV
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleImport}
+                        disabled={importLoading || !validationResult?.valid.length}
+                        className="ds-btn-primary inline-flex items-center gap-1.5"
+                      >
+                        {importLoading ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
+                            Mengimpor...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4" aria-hidden />
+                            Import {validationResult.valid.length} Baris Valid
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">

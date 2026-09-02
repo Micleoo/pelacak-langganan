@@ -66,7 +66,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
     existing?.category_id ?? categories[0]?.id ?? "",
   );
   const [status, setStatus] = useState<Status>(existing?.status ?? "active");
-  const [currency, setCurrency] = useState<string>(existing?.currency ?? baseCurrency);
+  const [currency, setCurrency] = useState<Currency>((existing?.currency as Currency) ?? (baseCurrency as Currency));
   const [nextBillingDate, setNextBillingDate] = useState(
     existing?.next_billing_date ?? todayISO(),
   );
@@ -249,7 +249,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
               id="currency"
               value={currency}
               onChange={(e) => {
-                setCurrency(e.target.value);
+                setCurrency(e.target.value as Currency);
                 clearError("currency");
               }}
               className={inputClass}

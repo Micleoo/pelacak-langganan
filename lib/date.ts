@@ -17,6 +17,10 @@ function addMonthsClamped(date: Date, months: number): Date {
   return target;
 }
 
+export function addMonths(date: Date, months: number): Date {
+  return addMonthsClamped(date, months);
+}
+
 export function addInterval(date: Date, interval: Interval): Date {
   switch (interval) {
     case "weekly":

@@ -12,7 +12,8 @@ import { createSupabaseClient } from "@/lib/supabase-client";
 import { createSupabaseAdapter } from "@/lib/supabase-adapter";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import type { DataStore } from "@/lib/data";
-import type { AppSettings, Category, Expense } from "@/lib/types";
+import type { AppSettings, Category, Expense, PaymentRecord } from "@/lib/types";
+import type { Currency } from "@/lib/currencies";
 
 const StoreContext = createContext<(DataStore & { error: string | null; clearError: () => void }) | null>(null);
 
@@ -20,6 +21,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const adapterRef = useRef<ReturnType<typeof createSupabaseAdapter> | null>(null);
@@ -38,6 +40,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setExpenses(data.expenses);
         setCategories(data.categories);
         setSettings(data.settings);
+        setPaymentHistory(data.paymentHistory);
         setReady(true);
       } catch (err) {
         console.error("Gagal memuat data dari Supabase:", err);
@@ -63,6 +66,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     expenses,
     categories,
     settings: settings ?? defaultSettings(),
+    paymentHistory,
     error,
     clearError,
 
@@ -74,7 +78,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     async updateExpense(id, input) {
       await adapterRef.current!.updateExpense(id, input);
-      setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, ...input } : e)));
+      setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, ...input, currency: input.currency as Currency } : e)));
     },
 
     async deleteExpense(id) {
@@ -123,6 +127,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const newSettings = await adapterRef.current!.updateSettings(input);
       setSettings(newSettings);
       return newSettings;
+    },
+
+    async fetchPaymentHistory() {
+      const history = await adapterRef.current!.fetchPaymentHistory();
+      setPaymentHistory(history);
+      return history;
+    },
+
+    async addPaymentHistory(input) {
+      const record = await adapterRef.current!.addPaymentHistory(input);
+      setPaymentHistory((prev) => [record, ...prev]);
+      return record;
     },
   };
 

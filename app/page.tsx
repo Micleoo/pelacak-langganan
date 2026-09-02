@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Plus, CheckCircle2, Pause } from "lucide-react";
+import { Plus, CheckCircle2, Pause, TrendingUp, DollarSign } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
 import { buildUpcoming, resolveNotifyDays, advanceOverdueExpense, computeMonthlyCost, computeCategoryBreakdown, monthlyAmountInBaseCurrency } from "@/lib/recurring";
 import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
@@ -15,9 +16,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 import { toast } from "react-hot-toast";
 import type { Currency } from "@/lib/currencies";
+import { MonthlyTrendChart, CategoryStackedChart, ChartToolbar } from "@/components/charts";
+import { computeMonthlyTrend, recordPayment } from "@/lib/analytics";
+import type { PaymentRecord } from "@/lib/types";
+import { RecordPaymentModal } from "@/components/RecordPaymentModal";
+import type { Expense } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { expenses, categories, settings, updateExpense, advanceOverdueExpense: storeAdvanceOverdue } = useStore();
+  const { expenses, categories, settings, paymentHistory, updateExpense, advanceOverdueExpense: storeAdvanceOverdue, addPaymentHistory } = useStore();
   const today = new Date();
 
   const active = expenses.filter((e) => e.status === "active");
@@ -47,16 +53,31 @@ export default function DashboardPage() {
   const notifyItems = upcoming.filter((u) => u.overdue || u.dueSoon);
   const showBanner = settings.in_app_enabled && notifyItems.length > 0;
 
+  const monthlyTrend = computeMonthlyTrend(expenses, paymentHistory, baseCurrency, 12);
+  const [chartType, setChartType] = useState<"area" | "bar">("area");
+  const [recordPaymentExpense, setRecordPaymentExpense] = useState<Expense | null>(null);
+
+  function openRecordPaymentModal(expense: Expense) {
+    setRecordPaymentExpense(expense);
+  }
+
+  function closeRecordPaymentModal() {
+    setRecordPaymentExpense(null);
+  }
+
   async function handleMarkAsPaid(expenseId: string) {
     const expense = expenses.find((e) => e.id === expenseId);
     if (!expense) return;
 
     try {
-      const advanced = advanceOverdueExpense(expense, today);
-      await storeAdvanceOverdue(expenseId, advanced.next_billing_date, advanced.last_paid_date!);
-      toast.success(`${expense.name} ditandai dibayar. Tanggal tagihan dimajukan.`);
+      await recordPayment(expenseId, expense.amount, expense.currency, today, {
+        addPaymentHistory,
+        updateExpense,
+        getExpense: (id) => expenses.find((e) => e.id === id),
+      });
+      toast.success(`${expense.name} dibayar & dicatat. Tanggal tagihan dimajukan.`);
     } catch {
-      toast.error("Gagal mengupdate biaya. Coba lagi.");
+      toast.error("Gagal mencatat pembayaran.");
     }
   }
 
@@ -183,6 +204,7 @@ export default function DashboardPage() {
                             </p>
                           )}
                         </div>
+                        <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleMarkAsPaid(e.id)}
@@ -192,6 +214,16 @@ export default function DashboardPage() {
                           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                           Bayar
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => openRecordPaymentModal(e)}
+                          className="ds-btn-secondary inline-flex shrink-0 items-center gap-1.5 text-xs py-1.5 px-2.5"
+                          aria-label={`Catat pembayaran ${e.name}`}
+                        >
+                          <DollarSign className="h-3.5 w-3.5" aria-hidden />
+                          Catat
+                        </button>
+                      </div>
                       </li>
                     );
                   })}
@@ -274,38 +306,49 @@ export default function DashboardPage() {
               </div>
               <Card className="p-0 overflow-hidden">
                 <ul className="divide-y divide-slate-200">
-                  {pausedExpenses.map((e) => {
-                    const monthlyConverted = monthlyAmountInBaseCurrency(e, baseCurrency);
-                    return (
-                      <li key={e.id} className="flex items-center gap-3 px-4 py-3">
-                        <CategoryIcon name={categoryName(e.category_id)} size={32} />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <Link
-                              href={`/expenses/${e.id}/edit`}
-                              className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
-                            >
-                              {e.name}
-                            </Link>
-                            <StatusBadge status={e.status} />
-                          </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {formatDate(e.next_billing_date)}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-semibold tabular-nums text-ink-slate">
-                            {formatAmount(e.amount, e.currency as Currency)}
-                          </p>
-                          {e.currency !== baseCurrency && (
-                            <p className="text-xs text-slate-500">
-                              ~{formatAmountMonthly(monthlyConverted, baseCurrency)}
+{pausedExpenses.map((e) => {
+                      const monthlyConverted = monthlyAmountInBaseCurrency(e, baseCurrency);
+                      return (
+                        <li key={e.id} className="flex items-center gap-3 px-4 py-3">
+                          <CategoryIcon name={categoryName(e.category_id)} size={32} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                              <Link
+                                href={`/expenses/${e.id}/edit`}
+                                className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
+                              >
+                                {e.name}
+                              </Link>
+                              <StatusBadge status={e.status} />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {formatDate(e.next_billing_date)}
                             </p>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-semibold tabular-nums text-ink-slate">
+                              {formatAmount(e.amount, e.currency as Currency)}
+                            </p>
+                            {e.currency !== baseCurrency && (
+                              <p className="text-xs text-slate-500">
+                                ~{formatAmountMonthly(monthlyConverted, baseCurrency)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openRecordPaymentModal(e)}
+                              className="ds-btn-secondary inline-flex shrink-0 items-center gap-1.5 text-xs py-1.5 px-2.5"
+                              aria-label={`Catat pembayaran ${e.name}`}
+                            >
+                              <DollarSign className="h-3.5 w-3.5" aria-hidden />
+                              Catat
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
                 </ul>
               </Card>
             </section>
@@ -344,6 +387,50 @@ export default function DashboardPage() {
               ))}
             </ul>
           </section>
+
+          <section className="mt-8">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-ink-slate flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary-600" aria-hidden />
+                Tren Bulanan
+              </h2>
+            </div>
+            {paymentHistory.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-12 text-center">
+                <p className="text-sm font-medium text-ink-slate">Belum ada data pembayaran</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Catat pembayaran pertama untuk melihat tren bulanan.
+                </p>
+                <Link
+                  href="/expenses"
+                  className="ds-btn-primary mt-4 inline-flex items-center gap-1.5"
+                >
+                  <Plus className="h-4 w-4" aria-hidden />
+                  Ke Daftar Biaya
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Card className="p-5">
+                  <ChartToolbar chartType={chartType} onChartTypeChange={setChartType} baseCurrency={baseCurrency} />
+                  <MonthlyTrendChart data={monthlyTrend} baseCurrency={baseCurrency} chartType={chartType} />
+                </Card>
+                <Card className="mt-4 p-5">
+                  <h3 className="mb-3 text-sm font-semibold text-ink-slate">Komposisi per Kategori</h3>
+                  <CategoryStackedChart data={monthlyTrend} baseCurrency={baseCurrency} categories={categories} />
+                </Card>
+              </>
+            )}
+          </section>
+
+          {recordPaymentExpense && (
+            <RecordPaymentModal
+              expense={recordPaymentExpense}
+              isOpen={!!recordPaymentExpense}
+              onClose={closeRecordPaymentModal}
+              onSuccess={() => {}}
+            />
+          )}
         </>
       )}
     </div>

@@ -46,10 +46,13 @@ function renderWithStore() {
   );
 }
 
+import type { PaymentRecord } from "./types";
+
 function setupMocks(
   expenses: Expense[] = [],
   categories: Category[] = [],
   settings: AppSettings | null = null,
+  paymentHistory: PaymentRecord[] = [],
   error: Error | null = null
 ) {
   mockSupabaseFrom.mockImplementation((table: string) => {
@@ -83,6 +86,13 @@ function setupMocks(
         }),
       };
     }
+    if (table === "payment_history") {
+      return {
+        select: () => ({
+          order: () => Promise.resolve({ data: paymentHistory, error: error }),
+        }),
+      };
+    }
     return baseSelect;
   });
 }
@@ -112,7 +122,7 @@ describe("Store", () => {
       base_currency: "IDR",
     };
 
-    setupMocks(mockExpenses, mockCategories, mockSettings, null);
+    setupMocks(mockExpenses, mockCategories, mockSettings, [], null);
 
     renderWithStore();
 
@@ -125,7 +135,7 @@ describe("Store", () => {
 
   it("handles load failure gracefully", async () => {
     const error = new Error("Connection failed");
-    setupMocks([], [], null, error);
+    setupMocks([], [], null, [], error);
 
     renderWithStore();
 
