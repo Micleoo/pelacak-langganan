@@ -18,47 +18,14 @@ create table if not exists public.payment_history (
 create index if not exists payment_history_expense_id_idx on public.payment_history(expense_id);
 create index if not exists payment_history_month_key_idx on public.payment_history(month_key);
 
--- RLS Policies (prepare for multi-user v2)
--- Current single-user anon context: auth.uid() is null, policies allow all
--- Future: when auth enabled, users only see their own payments via expense ownership
-
+-- RLS Policies (Single-user model: sama seperti tabel expenses dan categories)
 alter table public.payment_history enable row level security;
 
-create policy "Users can view own payment history"
-  on public.payment_history for select
-  using (
-    auth.uid() is null  -- allow in anon context (current single-user)
-    or auth.uid() = (
-      select user_id from public.expenses where id = payment_history.expense_id
-    )
-  );
-
-create policy "Users can insert own payment history"
-  on public.payment_history for insert
-  with check (
-    auth.uid() is null
-    or auth.uid() = (
-      select user_id from public.expenses where id = payment_history.expense_id
-    )
-  );
-
-create policy "Users can update own payment history"
-  on public.payment_history for update
-  using (
-    auth.uid() is null
-    or auth.uid() = (
-      select user_id from public.expenses where id = payment_history.expense_id
-    )
-  );
-
-create policy "Users can delete own payment history"
-  on public.payment_history for delete
-  using (
-    auth.uid() is null
-    or auth.uid() = (
-      select user_id from public.expenses where id = payment_history.expense_id
-    )
-  );
+create policy "Allow all access to payment_history"
+  on public.payment_history
+  for all
+  using (true)
+  with check (true);
 
 -- Comments
 comment on table public.payment_history is 'Riwayat pembayaran biaya berulang untuk analisis tren bulanan';

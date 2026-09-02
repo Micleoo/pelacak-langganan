@@ -148,8 +148,10 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
           await addExpense(input);
           toast.success("Biaya ditambahkan.");
         }
-      } catch {
-        toast.error("Gagal menyimpan biaya. Coba lagi.");
+      } catch (err: any) {
+        console.error("Gagal menyimpan biaya:", err);
+        const errMsg = err?.message || err?.details || "Gagal menyimpan biaya. Coba lagi.";
+        toast.error(errMsg);
         setIsSubmitting(false);
         return;
       }
