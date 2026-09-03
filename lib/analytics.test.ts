@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { computeMonthlyTrend, computeCategoryTrend, getAvailableMonths, recordPayment } from "./analytics";
 import type { Expense, PaymentRecord, Category } from "./types";
-import { todayUTC, toISO, addMonths } from "./date";
+import { todayUTC, toISO, addMonths } from "./format";
 
 function getMonthKey(date: Date): string {
   return toISO(date).slice(0, 7);

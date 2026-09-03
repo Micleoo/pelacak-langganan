@@ -1,5 +1,5 @@
 import type { AppSettings, Category, Expense, Interval } from "./types";
-import { parseISO, toISO, addInterval, todayUTC } from "./date";
+import { parseISO, toISO, addInterval, todayUTC } from "./format";
 import { convertToBaseCurrency, type Currency } from "./currencies";
 import { NONE_CATEGORY_KEY, NO_CATEGORY_LABEL } from "./constants";
 

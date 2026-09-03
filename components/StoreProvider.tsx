@@ -16,7 +16,7 @@ import type { DataStore } from "@/lib/data";
 import type { AppSettings, Category, Expense, PaymentRecord } from "@/lib/types";
 import type { Currency } from "@/lib/currencies";
 import { effectiveNextBillingDate } from "@/lib/recurring";
-import { toISO } from "@/lib/date";
+import { toISO } from "@/lib/format";
 
 const StoreContext = createContext<(DataStore & { error: string | null; clearError: () => void }) | null>(null);
 

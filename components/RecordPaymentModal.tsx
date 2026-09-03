@@ -6,7 +6,7 @@ import { useStore } from "@/components/StoreProvider";
 import type { Expense } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { SUPPORTED_CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currencies";
-import { parseISO } from "@/lib/date";
+import { parseISO } from "@/lib/format";
 
 interface RecordPaymentModalProps {
   expense: Expense;
