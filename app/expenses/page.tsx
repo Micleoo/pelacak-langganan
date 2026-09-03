@@ -2,8 +2,9 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2, Upload, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle } from "lucide-react";
+import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2, Upload, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle, Sparkles } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
+import { InvoiceScannerModal } from "@/components/InvoiceScannerModal";
 import { monthlyAmount, monthlyAmountInBaseCurrency } from "@/lib/recurring";
 import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
 import { exportExpensesToCSV } from "@/lib/export-csv";
@@ -39,6 +40,7 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const baseCurrency = (settings?.base_currency as Currency) ?? "IDR";
 
@@ -197,6 +199,14 @@ export default function ExpensesPage() {
               Ekspor CSV
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            className="ds-btn-secondary inline-flex items-center gap-1.5 text-xs py-2 px-3"
+          >
+            <Sparkles className="h-4 w-4 text-primary-600" aria-hidden />
+            Scan Email Tagihan
+          </button>
           <Link
             href="/expenses/new"
             className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5"
@@ -206,6 +216,11 @@ export default function ExpensesPage() {
           </Link>
         </div>
       </div>
+
+      <InvoiceScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+      />
 
       {/* CSV Import Section */}
       <Card className="mb-6">

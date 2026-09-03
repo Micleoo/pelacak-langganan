@@ -11,6 +11,9 @@ import { Button } from "./ui/Button";
 import { toast } from "react-hot-toast";
 import { ensureCategory } from "@/lib/categories";
 import { NEW_CATEGORY_KEY, NO_CATEGORY_LABEL } from "@/lib/constants";
+import { InvoiceScannerModal } from "./InvoiceScannerModal";
+import { Sparkles } from "lucide-react";
+import type { ParsedInvoice } from "@/lib/invoice-parser";
 
 const INTERVALS: { value: Interval; label: string }[] = [
   { value: "monthly", label: "Bulanan" },
@@ -75,6 +78,27 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  function handleApplyInvoice(inv: ParsedInvoice) {
+    setName(inv.name);
+    setAmount(String(inv.amount));
+    setCurrency(inv.currency);
+    setInterval(inv.interval);
+    setNextBillingDate(inv.next_billing_date);
+    if (inv.suggested_category) {
+      const matched = categories.find(
+        (c) => c.name.toLowerCase() === inv.suggested_category?.toLowerCase()
+      );
+      if (matched) {
+        setCategoryId(matched.id);
+      } else {
+        setCategoryId(NEW_CATEGORY_KEY);
+        setNewCategoryName(inv.suggested_category);
+      }
+    }
+    toast.success(`Data dari ${inv.name} berhasil diterapkan ke form!`);
+  }
 
   const creatingNewCategory = categoryId === NEW_CATEGORY_KEY;
   const isEditMode = !!existing;
@@ -111,7 +135,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
     if (!validate()) return;
     setIsSubmitting(true);
 
-    void (async () => {
+    (async () => {
       let finalCategoryId: string | null =
         categoryId === NEW_CATEGORY_KEY || categoryId === "" ? null : categoryId;
       if (creatingNewCategory && newCategoryName.trim()) {
@@ -195,6 +219,34 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
           Batal
         </Button>
       </div>
+
+      {!existing && (
+        <div className="mb-6 rounded-xl border border-primary-200 bg-primary-50/40 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-primary-100 text-primary-700">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-ink-slate">Punya Email Tagihan?</h3>
+              <p className="text-xs text-slate-500">Scan teks email tagihan (Netflix, Spotify, ChatGPT) untuk mengisi form ini secara otomatis.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            className="ds-btn-secondary shrink-0 text-xs font-semibold py-2 px-3 flex items-center gap-1.5 hover:bg-primary-50"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-primary-600" />
+            Scan Tagihan
+          </button>
+        </div>
+      )}
+
+      <InvoiceScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onApplyToForm={handleApplyInvoice}
+      />
 
       <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
         <div>
