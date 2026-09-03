@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore } from "@/components/StoreProvider";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";

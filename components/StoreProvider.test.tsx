@@ -1,29 +1,17 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act, cleanup } from "@testing-library/react";
-import { StoreProvider, useStore } from "./store";
-import type { Expense, Category, AppSettings } from "./types";
+import { StoreProvider, useStore } from "@/components/StoreProvider";
+import type { Expense, Category, AppSettings, PaymentRecord } from "@/lib/types";
 
 // Use vi.hoisted to define mock at top level
 const { mockSupabaseFrom } = vi.hoisted(() => ({
   mockSupabaseFrom: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase-client", () => ({
-  createSupabaseClient: () => ({
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({
     from: mockSupabaseFrom,
   }),
-}));
-
-vi.mock("./supabase-client", () => ({
-  createSupabaseClient: () => ({
-    from: mockSupabaseFrom,
-  }),
-}));
-
-vi.mock("./supabase", () => ({
-  supabase: {
-    from: mockSupabaseFrom,
-  },
 }));
 
 // Test component to access store
@@ -45,8 +33,6 @@ function renderWithStore() {
     </StoreProvider>
   );
 }
-
-import type { PaymentRecord } from "./types";
 
 function setupMocks(
   expenses: Expense[] = [],

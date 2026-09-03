@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Bell, Download, Mail, ShieldCheck, Globe } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore } from "@/components/StoreProvider";
 import { resolveNotifyDays } from "@/lib/recurring";
 import { exportExpensesToCSV } from "@/lib/export-csv";
 import { CategoryIcon } from "@/components/CategoryIcon";

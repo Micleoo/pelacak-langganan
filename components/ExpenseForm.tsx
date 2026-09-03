@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStore } from "@/lib/store";
+import { useStore } from "@/components/StoreProvider";
 import { monthlyAmount, monthlyAmountInBaseCurrency } from "@/lib/recurring";
 import { formatAmountMonthly, formatIntervalFormula } from "@/lib/format";
 import type { Expense, Interval, Status } from "@/lib/types";

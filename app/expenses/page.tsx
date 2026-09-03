@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2, Upload, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore } from "@/components/StoreProvider";
 import { monthlyAmount, advanceOverdueExpense, monthlyAmountInBaseCurrency } from "@/lib/recurring";
 import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
 import { exportExpensesToCSV } from "@/lib/export-csv";

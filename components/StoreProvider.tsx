@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { createSupabaseClient } from "@/lib/supabase-client";
+import { createClient } from "@/lib/supabase/client";
 import { createSupabaseAdapter } from "@/lib/supabase-adapter";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import type { DataStore } from "@/lib/data";
@@ -29,7 +29,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const adapterRef = useRef<ReturnType<typeof createSupabaseAdapter> | null>(null);
 
   if (!adapterRef.current) {
-    adapterRef.current = createSupabaseAdapter(createSupabaseClient());
+    adapterRef.current = createSupabaseAdapter(createClient());
   }
 
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, DollarSign, Calendar } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useStore } from "@/components/StoreProvider";
 import { recordPayment } from "@/lib/analytics";
 import type { Expense } from "@/lib/types";
 import { toast } from "react-hot-toast";

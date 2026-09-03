@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import nodemailer from "nodemailer";
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
     const body = await req.json().catch(() => ({}));
     let targetEmail = body.email;
 
