@@ -14,7 +14,22 @@ alter table public.payment_history
 alter table public.app_settings 
   add column if not exists user_id uuid references auth.users(id) on delete cascade default auth.uid();
 
--- 2. Performance indexes on user_id
+-- 2. Migrasikan seluruh data dummy/lama ke akun 11p221.michael@gmail.com
+do $$
+declare
+  target_user_id uuid;
+begin
+  select id into target_user_id from auth.users where email = '11p221.michael@gmail.com' limit 1;
+
+  if target_user_id is not null then
+    update public.expenses set user_id = target_user_id where user_id is null;
+    update public.categories set user_id = target_user_id where user_id is null;
+    update public.payment_history set user_id = target_user_id where user_id is null;
+    update public.app_settings set user_id = target_user_id where user_id is null;
+  end if;
+end $$;
+
+-- 3. Performance indexes on user_id
 create index if not exists expenses_user_id_idx on public.expenses(user_id);
 create index if not exists categories_user_id_idx on public.categories(user_id);
 create index if not exists payment_history_user_id_idx on public.payment_history(user_id);
