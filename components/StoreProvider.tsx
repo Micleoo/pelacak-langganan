@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { createSupabaseClient } from "@/lib/supabase-client";
 import { createSupabaseAdapter } from "@/lib/supabase-adapter";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -18,6 +19,7 @@ import type { Currency } from "@/lib/currencies";
 const StoreContext = createContext<(DataStore & { error: string | null; clearError: () => void }) | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading, hasProvider } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -32,6 +34,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+
+    // Jika di dalam AuthProvider dan status auth masih loading
+    if (hasProvider && authLoading) return;
+
+    // Jika di dalam AuthProvider dan user belum login (misal di /login atau logout)
+    if (hasProvider && !user) {
+      setExpenses([]);
+      setCategories([]);
+      setSettings(null);
+      setPaymentHistory([]);
+      setReady(true);
+      return;
+    }
 
     async function loadAll() {
       try {
@@ -56,7 +71,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user?.id, authLoading, hasProvider]);
 
   function clearError() {
     setError(null);

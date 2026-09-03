@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { AuthProvider } from "@/components/AuthProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ToastProvider } from "@/components/ui/ToastProvider";
@@ -39,11 +40,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Lewati ke konten
         </a>
-        <StoreProvider>
-          <ToastProvider />
-          <SiteHeader />
-          <main id="main" className="flex-1">{children}</main>
-        </StoreProvider>
+        <AuthProvider>
+          <StoreProvider>
+            <ToastProvider />
+            <SiteHeader />
+            <main id="main" className="flex-1">{children}</main>
+          </StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );

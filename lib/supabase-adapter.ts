@@ -106,9 +106,13 @@ export function createSupabaseAdapter(
     },
 
     async updateSettings(input) {
+      const payload: Record<string, unknown> = { ...input };
+      if (!payload.id) {
+        delete payload.id;
+      }
       const { data, error } = await supabase
         .from("app_settings")
-        .upsert(input)
+        .upsert(payload, { onConflict: payload.id ? "id" : "user_id" })
         .select()
         .single();
       if (error) throw error;
