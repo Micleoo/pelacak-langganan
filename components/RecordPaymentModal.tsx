@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { X, DollarSign, Calendar } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
-import { recordPayment } from "@/lib/analytics";
 import type { Expense } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { SUPPORTED_CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currencies";
@@ -17,7 +16,7 @@ interface RecordPaymentModalProps {
 }
 
 export function RecordPaymentModal({ expense, isOpen, onClose, onSuccess }: RecordPaymentModalProps) {
-  const { addPaymentHistory, updateExpense, expenses: allExpenses } = useStore();
+  const { settlePayment } = useStore();
   const [amount, setAmount] = useState(expense.amount);
   const [currency, setCurrency] = useState<Currency>(expense.currency);
   const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10));
@@ -43,11 +42,7 @@ export function RecordPaymentModal({ expense, isOpen, onClose, onSuccess }: Reco
 
     setIsSubmitting(true);
     try {
-      await recordPayment(expense.id, amount, currency, parseISO(paidAt), {
-        addPaymentHistory,
-        updateExpense,
-        getExpense: (id: string) => allExpenses.find((e) => e.id === id),
-      });
+      await settlePayment(expense.id, amount, currency, parseISO(paidAt));
       toast.success("Pembayaran dicatat.");
       onSuccess();
       onClose();

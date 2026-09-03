@@ -17,13 +17,13 @@ import { NO_CATEGORY_LABEL } from "@/lib/constants";
 import { toast } from "react-hot-toast";
 import type { Currency } from "@/lib/currencies";
 import { MonthlyTrendChart, CategoryStackedChart, ChartToolbar } from "@/components/charts";
-import { computeMonthlyTrend, recordPayment } from "@/lib/analytics";
+import { computeMonthlyTrend } from "@/lib/analytics";
 import type { PaymentRecord } from "@/lib/types";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import type { Expense } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { expenses, categories, settings, paymentHistory, updateExpense, advanceOverdueExpense: storeAdvanceOverdue, addPaymentHistory } = useStore();
+  const { expenses, categories, settings, paymentHistory, pauseExpense, settlePayment } = useStore();
   const today = new Date();
 
   const categoryName = (id: string | null) =>
@@ -60,11 +60,7 @@ export default function DashboardPage() {
     if (!expense) return;
 
     try {
-      await recordPayment(expenseId, expense.amount, expense.currency, today, {
-        addPaymentHistory,
-        updateExpense,
-        getExpense: (id) => expenses.find((e) => e.id === id),
-      });
+      await settlePayment(expenseId, expense.amount, expense.currency, today);
       toast.success(`${expense.name} dibayar & dicatat. Tanggal tagihan dimajukan.`);
     } catch {
       toast.error("Gagal mencatat pembayaran.");
@@ -72,12 +68,9 @@ export default function DashboardPage() {
   }
 
   async function handlePause(expenseId: string) {
-    const expense = expenses.find((e) => e.id === expenseId);
-    if (!expense) return;
-
     try {
-      await updateExpense(expenseId, { ...expense, status: "paused" });
-      toast.success(`${expense.name} dijeda.`);
+      const updated = await pauseExpense(expenseId);
+      toast.success(`${updated.name} dijeda.`);
     } catch {
       toast.error("Gagal mengupdate status. Coba lagi.");
     }

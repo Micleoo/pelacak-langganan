@@ -74,4 +74,7 @@ export interface DataStore {
   updateSettings(input: SettingsInput): Promise<AppSettings>;
   fetchPaymentHistory(): Promise<PaymentRecord[]>;
   addPaymentHistory(input: PaymentHistoryInput): Promise<PaymentRecord>;
+  pauseExpense(id: string): Promise<Expense>;
+  resumeExpense(id: string): Promise<Expense>;
+  settlePayment(expenseId: string, amount: number, currency: Currency, paidAt?: Date): Promise<{ expense: Expense; payment: PaymentRecord }>;
 }

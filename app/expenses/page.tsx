@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { Download, Pencil, Plus, Search, Trash2, X, Pause, Play, CheckCircle2, Upload, FileText, ChevronDown, ChevronUp, AlertCircle, CheckCircle } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
-import { monthlyAmount, advanceOverdueExpense, monthlyAmountInBaseCurrency } from "@/lib/recurring";
+import { monthlyAmount, monthlyAmountInBaseCurrency } from "@/lib/recurring";
 import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
 import { exportExpensesToCSV } from "@/lib/export-csv";
 import { CategoryIcon } from "@/components/CategoryIcon";
@@ -34,7 +34,7 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
 ];
 
 export default function ExpensesPage() {
-  const { expenses, categories, settings, deleteExpense, updateExpense, advanceOverdueExpense: storeAdvanceOverdue, addCategory, addExpense } = useStore();
+  const { expenses, categories, settings, deleteExpense, updateExpense, pauseExpense, resumeExpense, settlePayment, addCategory, addExpense } = useStore();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -66,7 +66,7 @@ export default function ExpensesPage() {
 
   async function handlePause(e: typeof expenses[0]) {
     try {
-      await updateExpense(e.id, { ...e, status: "paused" });
+      await pauseExpense(e.id);
       toast.success(`${e.name} dijeda.`);
     } catch {
       toast.error("Gagal mengupdate status. Coba lagi.");
@@ -75,7 +75,7 @@ export default function ExpensesPage() {
 
   async function handleResume(e: typeof expenses[0]) {
     try {
-      await updateExpense(e.id, { ...e, status: "active" });
+      await resumeExpense(e.id);
       toast.success(`${e.name} diaktifkan kembali.`);
     } catch {
       toast.error("Gagal mengupdate status. Coba lagi.");
@@ -84,9 +84,7 @@ export default function ExpensesPage() {
 
   async function handleMarkAsPaid(e: typeof expenses[0]) {
     try {
-      const today = new Date();
-      const advanced = advanceOverdueExpense(e, today);
-      await storeAdvanceOverdue(e.id, advanced.next_billing_date, advanced.last_paid_date!);
+      await settlePayment(e.id, e.amount, e.currency, new Date());
       toast.success(`${e.name} ditandai dibayar. Tanggal tagihan dimajukan.`);
     } catch {
       toast.error("Gagal mengupdate biaya. Coba lagi.");

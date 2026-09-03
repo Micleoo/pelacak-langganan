@@ -15,6 +15,8 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import type { DataStore } from "@/lib/data";
 import type { AppSettings, Category, Expense, PaymentRecord } from "@/lib/types";
 import type { Currency } from "@/lib/currencies";
+import { effectiveNextBillingDate } from "@/lib/recurring";
+import { toISO } from "@/lib/date";
 
 const StoreContext = createContext<(DataStore & { error: string | null; clearError: () => void }) | null>(null);
 
@@ -154,6 +156,58 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const record = await adapterRef.current!.addPaymentHistory(input);
       setPaymentHistory((prev) => [record, ...prev]);
       return record;
+    },
+
+    async pauseExpense(id) {
+      const expense = expenses.find((e) => e.id === id);
+      if (!expense) throw new Error(`Biaya dengan ID "${id}" tidak ditemukan.`);
+      await adapterRef.current!.updateExpense(id, { status: "paused" });
+      const updated = { ...expense, status: "paused" as const };
+      setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)));
+      return updated;
+    },
+
+    async resumeExpense(id) {
+      const expense = expenses.find((e) => e.id === id);
+      if (!expense) throw new Error(`Biaya dengan ID "${id}" tidak ditemukan.`);
+      await adapterRef.current!.updateExpense(id, { status: "active" });
+      const updated = { ...expense, status: "active" as const };
+      setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)));
+      return updated;
+    },
+
+    async settlePayment(expenseId, amount, currency, paidAt = new Date()) {
+      const expense = expenses.find((e) => e.id === expenseId);
+      if (!expense) throw new Error(`Biaya dengan ID "${expenseId}" tidak ditemukan.`);
+
+      const t = new Date(paidAt.getFullYear(), paidAt.getMonth(), paidAt.getDate());
+      const paidAtIso = toISO(t);
+      const monthKey = paidAtIso.slice(0, 7);
+
+      // 1. Simpan riwayat pembayaran via adapter
+      const record = await adapterRef.current!.addPaymentHistory({
+        expense_id: expenseId,
+        amount_paid: amount,
+        currency,
+        paid_at: paidAtIso,
+        month_key: monthKey,
+      });
+
+      // 2. Majukan siklus jatuh tempo berikutnya dan normalkan status ke active
+      const nextDate = effectiveNextBillingDate(expense, t);
+      await adapterRef.current!.advanceOverdueExpense(expenseId, nextDate, paidAtIso);
+
+      const updatedExpense: Expense = {
+        ...expense,
+        status: "active",
+        next_billing_date: nextDate,
+        last_paid_date: paidAtIso,
+      };
+
+      setPaymentHistory((prev) => [record, ...prev]);
+      setExpenses((prev) => prev.map((e) => (e.id === expenseId ? updatedExpense : e)));
+
+      return { expense: updatedExpense, payment: record };
     },
   };
 
