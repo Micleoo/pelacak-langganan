@@ -38,7 +38,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { error: authError, user } = await signUpWithEmail(email, password);
+      const { error: authError, user, session } = await signUpWithEmail(email, password);
 
       if (authError) {
         setError(authError.message || "Gagal mendaftar. Silakan coba lagi.");
@@ -46,9 +46,18 @@ export default function RegisterPage() {
         return;
       }
 
-      // Jika auto-confirm aktif atau sesi langsung ada
+      // Jika email sudah terdaftar sebelumnya
       if (user && user.identities && user.identities.length === 0) {
         setError("Email ini sudah terdaftar. Silakan gunakan menu Masuk.");
+        setLoading(false);
+        return;
+      }
+
+      // Jika email confirmation aktif di Supabase (session belum terbentuk)
+      if (!session) {
+        setSuccessMessage(
+          "Pendaftaran berhasil! Tautan verifikasi telah dikirim ke email Anda. Silakan periksa kotak masuk atau folder spam Anda untuk mengaktifkan akun sebelum masuk."
+        );
         setLoading(false);
         return;
       }

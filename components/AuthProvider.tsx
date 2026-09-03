@@ -16,7 +16,7 @@ export interface AuthContextType {
   loading: boolean;
   hasProvider: boolean;
   signInWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null; user: User | null }>;
+  signUpWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null; user: User | null; session: Session | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
 }
 
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     });
-    return { error, user: data.user };
+    return { error, user: data.user, session: data.session };
   };
 
   const signOut = async () => {
@@ -118,7 +118,7 @@ export function useAuth(): AuthContextType {
       loading: false,
       hasProvider: false,
       signInWithEmail: async () => ({ error: null }),
-      signUpWithEmail: async () => ({ error: null, user: null }),
+      signUpWithEmail: async () => ({ error: null, user: null, session: null }),
       signOut: async () => ({ error: null }),
     };
   }

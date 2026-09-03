@@ -29,6 +29,10 @@ export default function LoginPage() {
       if (authError) {
         if (authError.message.includes("Invalid login credentials")) {
           setError("Email atau kata sandi salah. Silakan periksa kembali.");
+        } else if (authError.message.includes("Email not confirmed")) {
+          setError(
+            "Email belum dikonfirmasi. Silakan periksa kotak masuk atau spam email Anda untuk mengklik tautan verifikasi, atau matikan fitur 'Confirm email' di Supabase Authentication."
+          );
         } else {
           setError(authError.message || "Gagal masuk. Silakan coba lagi.");
         }
