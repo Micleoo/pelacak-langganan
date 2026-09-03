@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus, CheckCircle2, Pause, TrendingUp, DollarSign } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
-import { buildUpcoming, resolveNotifyDays, advanceOverdueExpense, computeMonthlyCost, computeCategoryBreakdown, monthlyAmountInBaseCurrency } from "@/lib/recurring";
+import { computeInsight, monthlyAmountInBaseCurrency } from "@/lib/recurring";
 import { formatDate, formatRelativeDue, formatAmount, formatAmountMonthly } from "@/lib/format";
 import { categoryIdentity } from "@/lib/categories";
 import { CategoryIcon, CATEGORY_SOLID } from "@/components/CategoryIcon";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PrivacyBanner } from "@/components/PrivacyBanner";
 import { OnboardingCard } from "@/components/OnboardingCard";
 import { StatusBadge } from "@/components/StatusBadge";
-import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
+import { NO_CATEGORY_LABEL } from "@/lib/constants";
 import { toast } from "react-hot-toast";
 import type { Currency } from "@/lib/currencies";
 import { MonthlyTrendChart, CategoryStackedChart, ChartToolbar } from "@/components/charts";
@@ -26,32 +26,22 @@ export default function DashboardPage() {
   const { expenses, categories, settings, paymentHistory, updateExpense, advanceOverdueExpense: storeAdvanceOverdue, addPaymentHistory } = useStore();
   const today = new Date();
 
-  const active = expenses.filter((e) => e.status === "active");
-  const overdueExpenses = expenses.filter((e) => e.status === "overdue");
-  const pausedExpenses = expenses.filter((e) => e.status === "paused");
-
-  const baseCurrency = (settings?.base_currency as Currency) ?? "IDR";
-  const total = computeMonthlyCost(expenses, baseCurrency);
-
   const categoryName = (id: string | null) =>
     categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
 
-  const categoryBreakdownMap = computeCategoryBreakdown(expenses, baseCurrency);
-  const breakdown = [...categoryBreakdownMap.entries()]
-    .map(([key, value]) => ({
-      key,
-      name: key === NONE_CATEGORY_KEY ? NO_CATEGORY_LABEL : categoryName(key),
-      value,
-      pct: total > 0 ? (value / total) * 100 : 0,
-    }))
-    .sort((a, b) => b.value - a.value);
-
-  const upcoming = buildUpcoming(expenses, today, (e) =>
-    resolveNotifyDays(e, settings),
-  );
-
-  const notifyItems = upcoming.filter((u) => u.overdue || u.dueSoon);
-  const showBanner = settings.in_app_enabled && notifyItems.length > 0;
+  // Deep Module Seam: Seluruh orkestrasi ringkasan finansial diserap oleh computeInsight
+  const insight = computeInsight(expenses, categories, settings, today);
+  const {
+    totalMonthlyCost: total,
+    baseCurrency,
+    breakdown,
+    upcoming,
+    notifyItems,
+    showBanner,
+    overdueExpenses,
+    pausedExpenses,
+    activeExpenses: active,
+  } = insight;
 
   const monthlyTrend = computeMonthlyTrend(expenses, paymentHistory, baseCurrency, 12);
   const [chartType, setChartType] = useState<"area" | "bar">("area");

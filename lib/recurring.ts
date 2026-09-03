@@ -1,7 +1,7 @@
-import type { AppSettings, Expense, Interval } from "./types";
+import type { AppSettings, Category, Expense, Interval } from "./types";
 import { parseISO, toISO, addInterval, todayUTC } from "./date";
 import { convertToBaseCurrency, type Currency } from "./currencies";
-import { NONE_CATEGORY_KEY } from "./constants";
+import { NONE_CATEGORY_KEY, NO_CATEGORY_LABEL } from "./constants";
 
 export function monthlyAmount(amount: number, interval: Interval): number {
   switch (interval) {
@@ -119,4 +119,83 @@ export function buildUpcoming(
     });
   items.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
   return items;
+}
+
+export interface CategoryBreakdownItem {
+  key: string;
+  name: string;
+  value: number;
+  pct: number;
+}
+
+export interface InsightSummary {
+  totalMonthlyCost: number;
+  baseCurrency: Currency;
+  breakdown: CategoryBreakdownItem[];
+  upcoming: UpcomingItem[];
+  notifyItems: UpcomingItem[];
+  showBanner: boolean;
+  overdueExpenses: Expense[];
+  pausedExpenses: Expense[];
+  activeExpenses: Expense[];
+}
+
+/**
+ * Deep Module Seam: computeInsight
+ * Menyerap seluruh orkestrasi ringkasan finansial:
+ * - normalisasi multi-currency ke base currency
+ * - filtrasi status active, overdue, paused
+ * - agregasi breakdown kategori beserta persentase kontribusi
+ * - resolusi jendela jatuh tempo & status notifikasi in-app
+ */
+export function computeInsight(
+  expenses: Expense[],
+  categories: Category[],
+  settings: AppSettings | null,
+  referenceDate: Date = new Date(),
+): InsightSummary {
+  const baseCurrency = (settings?.base_currency as Currency) ?? "IDR";
+  const activeExpenses = expenses.filter((e) => e.status === "active");
+  const overdueExpenses = expenses.filter((e) => e.status === "overdue");
+  const pausedExpenses = expenses.filter((e) => e.status === "paused");
+
+  const totalMonthlyCost = computeMonthlyCost(expenses, baseCurrency);
+
+  const categoryMap = new Map<string, string>();
+  for (const c of categories) {
+    categoryMap.set(c.id, c.name);
+  }
+
+  const breakdownMap = computeCategoryBreakdown(expenses, baseCurrency);
+  const breakdown: CategoryBreakdownItem[] = [...breakdownMap.entries()]
+    .map(([key, value]) => ({
+      key,
+      name: key === NONE_CATEGORY_KEY ? NO_CATEGORY_LABEL : (categoryMap.get(key) ?? NO_CATEGORY_LABEL),
+      value,
+      pct: totalMonthlyCost > 0 ? (value / totalMonthlyCost) * 100 : 0,
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const fallbackSettings: Pick<AppSettings, "default_notify_days_before"> = {
+    default_notify_days_before: settings?.default_notify_days_before ?? 3,
+  };
+
+  const upcoming = buildUpcoming(expenses, referenceDate, (e) =>
+    resolveNotifyDays(e, settings ?? fallbackSettings),
+  );
+
+  const notifyItems = upcoming.filter((u) => u.overdue || u.dueSoon);
+  const showBanner = Boolean(settings?.in_app_enabled) && notifyItems.length > 0;
+
+  return {
+    totalMonthlyCost,
+    baseCurrency,
+    breakdown,
+    upcoming,
+    notifyItems,
+    showBanner,
+    overdueExpenses,
+    pausedExpenses,
+    activeExpenses,
+  };
 }

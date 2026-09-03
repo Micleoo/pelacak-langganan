@@ -11,9 +11,10 @@ import {
   computeMonthlyCost,
   monthlyAmountInBaseCurrency,
   computeCategoryBreakdown,
+  computeInsight,
 } from "./recurring";
 import { formatIntervalFormula, formatRelativeDue } from "./format";
-import type { AppSettings, Expense, Interval } from "./types";
+import type { AppSettings, Category, Expense, Interval } from "./types";
 
 const today = new Date(2026, 7, 19);
 
@@ -346,5 +347,97 @@ describe("buildUpcoming excludes paused and overdue", () => {
     );
     expect(items).toHaveLength(1);
     expect(items[0].overdue).toBe(true);
+  });
+});
+
+describe("computeInsight (Deep Insight Module)", () => {
+  const categories: Category[] = [
+    { id: "cat-stream", name: "Streaming" },
+    { id: "cat-ai", name: "AI Tools" },
+  ];
+
+  const defaultSettings: AppSettings = {
+    default_notify_days_before: 3,
+    email_enabled: false,
+    in_app_enabled: true,
+    user_email: "test@example.com",
+    base_currency: "IDR",
+  };
+
+  it("calculates total monthly cost in base currency and aggregates categories with percentages", () => {
+    const expenses: Expense[] = [
+      expense({ id: "e1", name: "Netflix", amount: 150000, interval: "monthly", category_id: "cat-stream", status: "active" }),
+      expense({ id: "e2", name: "Spotify", amount: 50000, interval: "monthly", category_id: "cat-stream", status: "active" }),
+      expense({ id: "e3", name: "ChatGPT", amount: 100000, interval: "monthly", category_id: "cat-ai", status: "active" }),
+      expense({ id: "e4", name: "Paused Service", amount: 80000, interval: "monthly", category_id: "cat-ai", status: "paused" }),
+      expense({ id: "e5", name: "Cancelled Service", amount: 90000, interval: "monthly", category_id: "cat-ai", status: "cancelled" }),
+    ];
+
+    const insight = computeInsight(expenses, categories, defaultSettings, today);
+
+    expect(insight.totalMonthlyCost).toBe(300000);
+    expect(insight.baseCurrency).toBe("IDR");
+
+    // Breakdown should be sorted descending: Streaming (200k, 66.67%), AI Tools (100k, 33.33%)
+    expect(insight.breakdown).toHaveLength(2);
+    expect(insight.breakdown[0].name).toBe("Streaming");
+    expect(insight.breakdown[0].value).toBe(200000);
+    expect(Math.round(insight.breakdown[0].pct)).toBe(67);
+
+    expect(insight.breakdown[1].name).toBe("AI Tools");
+    expect(insight.breakdown[1].value).toBe(100000);
+    expect(Math.round(insight.breakdown[1].pct)).toBe(33);
+  });
+
+  it("handles uncategorized expenses and labels them 'Tanpa kategori'", () => {
+    const expenses: Expense[] = [
+      expense({ id: "e1", name: "Domain", amount: 100000, interval: "monthly", category_id: null, status: "active" }),
+    ];
+
+    const insight = computeInsight(expenses, categories, defaultSettings, today);
+    expect(insight.breakdown).toHaveLength(1);
+    expect(insight.breakdown[0].name).toBe("Tanpa kategori");
+    expect(insight.breakdown[0].pct).toBe(100);
+  });
+
+  it("partitions active, overdue, and paused expenses correctly", () => {
+    const expenses: Expense[] = [
+      expense({ id: "e1", status: "active", next_billing_date: "2026-08-25" }),
+      expense({ id: "e2", status: "paused" }),
+      expense({ id: "e3", status: "overdue", next_billing_date: "2026-08-10" }),
+    ];
+
+    const insight = computeInsight(expenses, categories, defaultSettings, today);
+    expect(insight.activeExpenses).toHaveLength(1);
+    expect(insight.activeExpenses[0].id).toBe("e1");
+    expect(insight.pausedExpenses).toHaveLength(1);
+    expect(insight.pausedExpenses[0].id).toBe("e2");
+    expect(insight.overdueExpenses).toHaveLength(1);
+    expect(insight.overdueExpenses[0].id).toBe("e3");
+  });
+
+  it("controls in-app banner visibility based on in_app_enabled and notify items", () => {
+    // Due soon: today is 2026-08-19, bill date 2026-08-21 (2 days away, <= default 3 days)
+    const expenses: Expense[] = [
+      expense({ id: "e1", status: "active", next_billing_date: "2026-08-21" }),
+    ];
+
+    const enabledInsight = computeInsight(expenses, categories, defaultSettings, today);
+    expect(enabledInsight.notifyItems.length).toBeGreaterThan(0);
+    expect(enabledInsight.showBanner).toBe(true);
+
+    const disabledSettings = { ...defaultSettings, in_app_enabled: false };
+    const disabledInsight = computeInsight(expenses, categories, disabledSettings, today);
+    expect(disabledInsight.showBanner).toBe(false);
+  });
+
+  it("converts multi-currency expenses to user's base currency", () => {
+    // 1 USD = 15,500 IDR
+    const expenses: Expense[] = [
+      expense({ id: "e1", amount: 20, currency: "USD", interval: "monthly", status: "active" }),
+    ];
+
+    const insight = computeInsight(expenses, categories, defaultSettings, today);
+    expect(insight.totalMonthlyCost).toBe(20 * 15500);
   });
 });
