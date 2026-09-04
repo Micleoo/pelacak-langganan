@@ -1,10 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Authentication & Navigation Flow", () => {
-  test("redirects unauthenticated user from root / to /login", async ({ page }) => {
+  test("renders landing page for unauthenticated visitors on root /", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole("heading", { name: "Masuk ke Pelacak Langganan" })).toBeVisible();
+    await expect(page).toHaveURL("/");
+    await expect(
+      page.getByRole("heading", { name: "Ketahui Ke Mana Uang Langgananmu Pergi Setiap Bulan" })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Coba Demo Interaktif (Tanpa Akun)" })).toBeVisible();
   });
 
   test("redirects unauthenticated user from /expenses to /login", async ({ page }) => {
@@ -81,5 +84,16 @@ test.describe("Authentication & Navigation Flow", () => {
     const errorAlert = page.locator(".animate-fadeIn[role='alert']");
     await expect(errorAlert).toBeVisible();
     await expect(errorAlert).toContainText("Konfirmasi kata sandi tidak cocok.");
+  });
+
+  test("allows navigating directly from /login to interactive demo", async ({ page }) => {
+    await page.goto("/login");
+    const demoLink = page.getByRole("link", { name: /coba demo interaktif tanpa akun/i });
+    await expect(demoLink).toBeVisible();
+    await demoLink.click();
+
+    await expect(page).toHaveURL(/\?demo=true/);
+    await expect(page.getByText("Mode Demo Interaktif")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Netflix Premium" })).toBeVisible();
   });
 });

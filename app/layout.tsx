@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import { StoreProvider } from "@/components/StoreProvider";
 import { SiteHeader } from "@/components/SiteHeader";
+import { BottomNav } from "@/components/BottomNav";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import "./globals.css";
 
@@ -44,7 +45,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <StoreProvider>
             <ToastProvider />
             <SiteHeader />
-            <main id="main" className="flex-1">{children}</main>
+            <main id="main" className="flex-1 pb-16 sm:pb-0">{children}</main>
+            <BottomNav />
           </StoreProvider>
         </AuthProvider>
       </body>

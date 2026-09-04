@@ -9,7 +9,13 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { toast } from "react-hot-toast";
 import { NO_CATEGORY_LABEL } from "@/lib/constants";
-import { SUPPORTED_CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currencies";
+import {
+  SUPPORTED_CURRENCIES,
+  CURRENCY_LABELS,
+  CURRENCY_SYMBOLS,
+  EXCHANGE_RATES_TO_IDR,
+  type Currency,
+} from "@/lib/currencies";
 
 const DAYS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -409,6 +415,39 @@ export default function SettingsPage() {
               </option>
             ))}
           </select>
+
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <h3 className="text-xs font-semibold text-ink-slate uppercase tracking-wider mb-1.5">
+              Tabel Kurs Acuan Tetap (Konversi ke IDR)
+            </h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Pelacak Langganan berjalan 100% di peramban Anda. Nilai tukar dihitung secara deterministik tanpa tracking atau ketergantungan API pihak ketiga:
+            </p>
+            <div className="overflow-x-auto rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-slate-200/80 text-slate-500 font-medium">
+                    <th className="pb-1.5">Mata Uang</th>
+                    <th className="pb-1.5">Simbol</th>
+                    <th className="pb-1.5 text-right">Nilai Acuan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {SUPPORTED_CURRENCIES.map((curr) => (
+                    <tr key={curr} className="py-1.5">
+                      <td className="py-1.5 font-medium text-slate-700">{CURRENCY_LABELS[curr]}</td>
+                      <td className="py-1.5 text-slate-500">{CURRENCY_SYMBOLS[curr]}</td>
+                      <td className="py-1.5 text-right font-mono font-semibold text-slate-800">
+                        {curr === "IDR"
+                          ? "Dasar (1:1)"
+                          : `Rp ${EXCHANGE_RATES_TO_IDR[curr].toLocaleString("id-ID")}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </Card>
 
         <Card className="p-5">

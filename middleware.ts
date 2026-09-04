@@ -42,9 +42,10 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isApiRoute = pathname.startsWith("/api/");
   const isAuthCallback = pathname.startsWith("/auth") || pathname.startsWith("/api/auth");
+  const isPublicRoute = pathname === "/";
 
   // Jika belum login dan mencoba mengakses rute yang dilindungi
-  if (!user && !isAuthPage && !isAuthCallback) {
+  if (!user && !isAuthPage && !isAuthCallback && !isPublicRoute) {
     if (isApiRoute) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

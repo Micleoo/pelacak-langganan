@@ -205,6 +205,16 @@ export default function RegisterPage() {
                 Masuk ke akun
               </Link>
             </p>
+
+            <div className="mt-4 pt-4 border-t border-slate-100/80">
+              <Link
+                href="/?demo=true"
+                className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-teal-700 transition-colors"
+              >
+                <span>Atau coba demo interaktif tanpa akun</span>
+                <span>→</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
