@@ -2,7 +2,7 @@ import { formatCurrency, formatCurrencyMonthly, type Currency } from "./currenci
 import type { Interval } from "./types";
 
 export function parseISO(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d));
 }
 
@@ -58,12 +58,15 @@ export function formatAmountMonthly(amount: number, currency: Currency | string)
 }
 
 export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
+  if (!iso) return "-";
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  if (isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(y, m - 1, d));
+  }).format(date);
 }
 
 export function formatRelativeDue(
@@ -77,11 +80,18 @@ export function formatRelativeDue(
   isSoon: boolean;
 } {
   let targetDate: Date;
+  if (!targetDateInput) {
+    return { label: "-", diffDays: 0, isOverdue: false, isToday: false, isSoon: false };
+  }
   if (typeof targetDateInput === "string") {
-    const [y, m, d] = targetDateInput.split("-").map(Number);
+    const [y, m, d] = targetDateInput.slice(0, 10).split("-").map(Number);
     targetDate = new Date(y, m - 1, d);
   } else {
     targetDate = new Date(targetDateInput.getFullYear(), targetDateInput.getMonth(), targetDateInput.getDate());
+  }
+
+  if (isNaN(targetDate.getTime())) {
+    return { label: "-", diffDays: 0, isOverdue: false, isToday: false, isSoon: false };
   }
 
   const base = new Date(baseDateInput.getFullYear(), baseDateInput.getMonth(), baseDateInput.getDate());
@@ -125,11 +135,11 @@ export function formatIntervalFormula(
 ): string {
   switch (interval) {
     case "yearly":
-      return `${formatAmount(amount, currency)} ÷ 12 bulan = ${formatAmount(Math.round(amount / 12), currency)}/bulan`;
+      return `${formatAmount(amount, currency)} ÷ 12 bulan = ${formatAmount(amount / 12, currency)}/bulan`;
     case "quarterly":
-      return `${formatAmount(amount, currency)} ÷ 3 bulan = ${formatAmount(Math.round(amount / 3), currency)}/bulan`;
+      return `${formatAmount(amount, currency)} ÷ 3 bulan = ${formatAmount(amount / 3, currency)}/bulan`;
     case "weekly":
-      return `${formatAmount(amount, currency)} × 52 ÷ 12 = ${formatAmount(Math.round((amount * 52) / 12), currency)}/bulan`;
+      return `${formatAmount(amount, currency)} × 52 ÷ 12 = ${formatAmount((amount * 52) / 12, currency)}/bulan`;
     case "monthly":
     default:
       return `${formatAmount(amount, currency)}/bulan`;

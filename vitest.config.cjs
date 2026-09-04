@@ -10,5 +10,6 @@ module.exports = defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.cjs"],
+    exclude: ["**/node_modules/**", "**/e2e/**"],
   },
 });

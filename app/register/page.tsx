@@ -121,6 +121,8 @@ export default function RegisterPage() {
                 Email
               </span>
               <Input
+                id="email"
+                name="email"
                 type="email"
                 placeholder="nama@email.com"
                 value={email}
@@ -138,6 +140,8 @@ export default function RegisterPage() {
               </span>
               <div className="relative">
                 <Input
+                  id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
@@ -168,6 +172,8 @@ export default function RegisterPage() {
                 Konfirmasi Kata Sandi
               </span>
               <Input
+                id="confirm-password"
+                name="confirm-password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={confirmPassword}

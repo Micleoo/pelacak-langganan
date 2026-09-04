@@ -83,6 +83,8 @@ export default function LoginPage() {
                 Email
               </span>
               <Input
+                id="email"
+                name="email"
                 type="email"
                 placeholder="nama@email.com"
                 value={email}
@@ -100,6 +102,8 @@ export default function LoginPage() {
               </span>
               <div className="relative">
                 <Input
+                  id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
