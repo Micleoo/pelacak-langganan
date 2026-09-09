@@ -20,8 +20,15 @@ export default function CategoriesPage() {
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  function normalizeCategoryName(value: string) {
+    return value
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/\b\p{L}/gu, (character) => character.toUpperCase());
+  }
+
   function handleAdd() {
-    const name = newName.trim();
+    const name = normalizeCategoryName(newName);
     if (!name) return;
     if (categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
       toast.error("Kategori sudah ada.");
@@ -38,7 +45,7 @@ export default function CategoriesPage() {
   }
 
   function handleRename() {
-    const name = editingName.trim();
+    const name = normalizeCategoryName(editingName);
     if (!editingId || !name) return;
     setIsRenaming(true);
     renameCategory(editingId, name)

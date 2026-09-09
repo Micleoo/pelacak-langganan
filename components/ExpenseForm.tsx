@@ -23,6 +23,8 @@ const INTERVALS: { value: Interval; label: string }[] = [
   { value: "weekly", label: "Mingguan" },
 ];
 
+const REMINDER_DAYS = [1, 2, 3, 4, 5, 6, 7];
+
 const STATUSES_CREATE: { value: Status; label: string }[] = [
   { value: "active", label: "Aktif" },
   { value: "paused", label: "Dijeda" },
@@ -73,6 +75,9 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const [currency, setCurrency] = useState<Currency>((existing?.currency as Currency) ?? (baseCurrency as Currency));
   const [nextBillingDate, setNextBillingDate] = useState(
     existing?.next_billing_date ?? todayISO(),
+  );
+  const [notifyDaysBefore, setNotifyDaysBefore] = useState<number | "">(
+    existing?.notify_days_before ?? "",
   );
   const [newCategoryName, setNewCategoryName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -173,7 +178,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
         status,
         currency,
         next_billing_date: nextBillingDate,
-        notify_days_before: existing?.notify_days_before ?? null,
+        notify_days_before: notifyDaysBefore === "" ? null : notifyDaysBefore,
         last_paid_date: existing?.last_paid_date ?? null,
       };
 
@@ -397,6 +402,17 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
             />
           </Field>
         </div>
+
+        <Field label="Pengingat khusus" htmlFor="notify-days" helperText="Kosongkan untuk memakai timing global dari Pengaturan.">
+          <Select
+            id="notify-days"
+            value={notifyDaysBefore}
+            onChange={(e) => setNotifyDaysBefore(e.target.value === "" ? "" : Number(e.target.value))}
+          >
+            <option value="">Pakai timing global</option>
+            {REMINDER_DAYS.map((day) => <option key={day} value={day}>H-{day} ({day} hari sebelum)</option>)}
+          </Select>
+        </Field>
 
         <div className="rounded-xl border border-primary-100 bg-primary-50/80 p-4 space-y-1">
           <div className="flex items-center justify-between">

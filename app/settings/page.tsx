@@ -3,13 +3,10 @@
 import { useState } from "react";
 import { Bell, Download, Mail, ShieldCheck, Globe } from "lucide-react";
 import { useStore } from "@/components/StoreProvider";
-import { resolveNotifyDays } from "@/lib/recurring";
 import { exportExpensesToCSV } from "@/lib/export-csv";
-import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Input";
 import { toast } from "react-hot-toast";
-import { NO_CATEGORY_LABEL } from "@/lib/constants";
 import {
   SUPPORTED_CURRENCIES,
   CURRENCY_LABELS,
@@ -58,18 +55,14 @@ function Toggle({
 }
 
 export default function SettingsPage() {
-  const { expenses, categories, settings, updateSettings, updateExpenseNotifyDays } =
+  const { expenses, categories, settings, updateSettings } =
     useStore();
 
-  const active = expenses.filter((e) => e.status === "active");
   const globalDays = settings.default_notify_days_before;
-  const categoryName = (id: string | null) =>
-    categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
 
   const [emailInput, setEmailInput] = useState(settings.user_email || "");
   const [emailDebounceTimer, setEmailDebounceTimer] = useState<NodeJS.Timeout | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
-  const [isSavingEmail, setIsSavingEmail] = useState(false);
 
   function isValidEmail(email: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -90,19 +83,16 @@ export default function SettingsPage() {
     if (trimmed === (settings.user_email || "")) {
       return Promise.resolve(true);
     }
-    setIsSavingEmail(true);
     return updateSettings({
       ...settings,
       user_email: trimmed,
       email_enabled: trimmed ? settings.email_enabled : false,
     })
       .then(() => {
-        setIsSavingEmail(false);
         if (showToast && trimmed) toast.success("Email berhasil disimpan.");
         return true;
       })
       .catch(() => {
-        setIsSavingEmail(false);
         if (showToast) toast.error("Gagal menyimpan email.");
         return false;
       });
@@ -271,27 +261,16 @@ export default function SettingsPage() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-            <Field label="Alamat Email Pengingat" htmlFor="user-email" helperText="Email disimpan otomatis atau klik Simpan Email.">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <Input
-                  id="user-email"
-                  type="email"
-                  className="flex-1"
-                  placeholder="nama@email.com"
-                  value={emailInput}
-                  onChange={(e) => handleEmailChange(e.target.value)}
-                  onBlur={handleEmailBlur}
-                  onKeyDown={handleEmailKeyDown}
-                />
-                <button
-                  type="button"
-                  onClick={() => saveEmail(emailInput)}
-                  disabled={isSavingEmail}
-                  className="ds-btn-secondary shrink-0 text-xs px-3 py-2"
-                >
-                  {isSavingEmail ? "Menyimpan..." : "Simpan Email"}
-                </button>
-              </div>
+            <Field label="Alamat Email Pengingat" htmlFor="user-email" helperText="Alamat disimpan otomatis setelah Anda selesai mengetik.">
+              <Input
+                id="user-email"
+                type="email"
+                placeholder="nama@email.com"
+                value={emailInput}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                onBlur={handleEmailBlur}
+                onKeyDown={handleEmailKeyDown}
+              />
             </Field>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
@@ -299,7 +278,7 @@ export default function SettingsPage() {
                 Status:{" "}
                 {settings.email_enabled && settings.user_email ? (
                   <span className="font-medium text-primary-700">
-                    Aktif (dikirim via cron harian)
+                    Notifikasi email aktif
                   </span>
                 ) : (
                   <span className="font-medium text-slate-500">
@@ -319,57 +298,6 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </Card>
-
-        <Card className="p-5">
-          <h2 className="text-sm font-medium text-ink-slate">
-            Timing per biaya
-          </h2>
-          <p className="mb-3 text-xs text-slate-500">
-            Atur pengingat berbeda untuk biaya tertentu.
-          </p>
-          {active.length === 0 ? (
-            <p className="text-sm text-slate-500">Belum ada biaya aktif.</p>
-          ) : (
-            <ul className="divide-y divide-slate-100">
-              {active.map((e) => (
-                <li key={e.id} className="flex items-center gap-3 py-2.5">
-                  <CategoryIcon name={categoryName(e.category_id)} size={28} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-slate">
-                    {e.name}
-                  </span>
-                  <Select
-                    value={e.notify_days_before ?? ""}
-                    onChange={(ev) => {
-                      const v = ev.target.value;
-                      updateExpenseNotifyDays(
-                        e.id,
-                        v === "" ? null : Number(v),
-                      )
-                        .then(() =>
-                          toast.success(
-                            v === ""
-                              ? `${e.name} memakai timing global (H-${globalDays}).`
-                              : `${e.name} diingatkan H-${v}.`,
-                          ),
-                        )
-                        .catch(() => toast.error("Gagal memperbarui biaya."));
-                    }}
-                    aria-label={`Timing pengingat ${e.name}`}
-                  >
-                    <option value="">
-                      Pakai global (H-{globalDays})
-                    </option>
-                    {DAYS.map((d) => (
-                      <option key={d} value={d}>
-                        H-{d}
-                      </option>
-                    ))}
-                  </Select>
-                </li>
-              ))}
-            </ul>
-          )}
         </Card>
 
         <Card className="p-5">

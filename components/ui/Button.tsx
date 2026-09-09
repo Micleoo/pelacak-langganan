@@ -13,11 +13,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`${rootClass} ${className || ""}`.trim()}
+        className={`${rootClass} inline-flex items-center justify-center gap-1.5 ${className || ""}`.trim()}
         disabled={disabled || loading}
         {...props}
       >
-        {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" aria-hidden />}
+        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
         {children}
       </button>
     );

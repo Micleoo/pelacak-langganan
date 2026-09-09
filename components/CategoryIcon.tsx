@@ -4,6 +4,7 @@ import {
   Bot,
   CircleDollarSign,
   Clapperboard,
+  Dumbbell,
   Wifi,
   type LucideIcon,
 } from "lucide-react";
@@ -44,6 +45,7 @@ export const CATEGORY_SOLID: Record<CategoryColorToken, string> = {
 const KNOWN_CATEGORIES: Record<string, { icon: LucideIcon; color: CategoryColorToken }> = {
   Streaming: { icon: Clapperboard, color: "cat-1" },
   "AI Tools": { icon: Bot, color: "cat-2" },
+  Fitness: { icon: Dumbbell, color: "cat-5" },
   Utilitas: { icon: Wifi, color: "cat-3" },
 };
 
