@@ -1,7 +1,7 @@
 import type { Expense, Category, AppSettings } from "./types";
 import { todayUTC, toISO } from "./format";
 import { convertToBaseCurrency, type Currency } from "./currencies";
-import { effectiveNextBillingDate, monthlyAmount } from "./recurring";
+import { effectiveNextBillingDate, monthlyAmount, monthlyAmountInBaseCurrency } from "./recurring";
 
 export interface MonthlyTrend {
   month: string;           // 'YYYY-MM'
@@ -46,8 +46,6 @@ export function computeMonthlyTrend(
 ): MonthlyTrend[] {
   const activeExpenses = expenses.filter((e) => e.status === "active");
   const expenseById = new Map(activeExpenses.map((e) => [e.id, e]));
-  const categoryIds = [...new Set(activeExpenses.map((e) => e.category_id).filter(Boolean))];
-
   const months = getMonthsBack(monthsBack);
 
   const trend: MonthlyTrend[] = months.map((month) => ({
@@ -76,6 +74,29 @@ export function computeMonthlyTrend(
   }
 
   return trend;
+}
+
+/**
+ * Simulasi biaya bulanan dari portofolio aktif saat ini. Ini bukan riwayat
+ * pembayaran: setiap bulan dalam rentang menampilkan baseline biaya yang sama.
+ */
+export function computeProjectedTrend(
+  expenses: Expense[],
+  baseCurrency: Currency,
+  monthsBack = 12,
+): MonthlyTrend[] {
+  const activeExpenses = expenses.filter((expense) => expense.status === "active");
+  return getMonthsBack(monthsBack).map((month) => {
+    const byCategory = new Map<string, number>();
+    let total = 0;
+    for (const expense of activeExpenses) {
+      const value = monthlyAmountInBaseCurrency(expense, baseCurrency);
+      const categoryKey = expense.category_id ?? "__none__";
+      total += value;
+      byCategory.set(categoryKey, (byCategory.get(categoryKey) ?? 0) + value);
+    }
+    return { month, total, byCategory };
+  });
 }
 
 export function computeCategoryTrend(

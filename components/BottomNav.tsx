@@ -31,7 +31,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur-md px-2 py-1.5 shadow-lg"
+      className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
     >
       <div className="flex items-center justify-around">
         {TABS.map((tab) => {
@@ -44,7 +44,7 @@ export function BottomNav() {
               href={tab.href}
               className={`flex flex-col items-center justify-center min-w-[64px] py-1 px-2 rounded-lg transition-colors ${
                 active
-                  ? "text-teal-600 font-semibold"
+                  ? "bg-primary-50 text-primary-700 font-semibold"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >

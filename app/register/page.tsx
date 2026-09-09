@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/Button";
-import { Input, Field } from "@/components/ui/Input";
-import { Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle2, UserPlus } from "lucide-react";
+import { Input, InputWithAdornment, Field } from "@/components/ui/Input";
+import { Eye, EyeOff, AlertCircle, CheckCircle2, UserPlus } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -77,23 +77,31 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center p-4 bg-slate-50">
-      <div className="w-full max-w-md">
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50 px-5 py-12 sm:px-8 sm:py-20">
+      <div className="mx-auto grid w-full max-w-5xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
         {/* Header Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-50 text-primary-600 mb-3 border border-primary-100 shadow-xs">
-            <UserPlus className="w-6 h-6 text-teal-600" />
+        <div className="pt-2 lg:pt-8">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary-700 text-white">
+            <UserPlus className="h-5 w-5" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <p className="mt-7 text-sm font-medium text-primary-700">Mulai dengan tenang</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-5xl">
             Daftar Akun Baru
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="mt-5 max-w-sm text-base leading-7 text-slate-600">
             Mulai kelola langganan rutin Anda dengan data pribadi terisolasi.
+          </p>
+          <p className="mt-8 hidden border-t border-slate-200 pt-6 text-sm leading-6 text-slate-600 lg:block">
+            Buat akun untuk menyimpan daftar biaya, kategori, dan pengingat yang hanya dapat Anda akses sendiri.
           </p>
         </div>
 
         {/* Card Form */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+        <div className="border border-slate-200 bg-white p-6 sm:p-9">
+          <div className="mb-7 border-b border-slate-100 pb-5">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-slate-950">Buat detail akun</h2>
+            <p className="mt-1 text-sm text-slate-500">Gunakan email aktif untuk menerima verifikasi bila diperlukan.</p>
+          </div>
           {error && (
             <div
               role="alert"
@@ -115,11 +123,7 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Field>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                <Mail className="w-3.5 h-3.5 text-slate-400" />
-                Email
-              </span>
+            <Field label="Email" htmlFor="email" required>
               <Input
                 id="email"
                 name="email"
@@ -133,13 +137,8 @@ export default function RegisterPage() {
               />
             </Field>
 
-            <Field>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                Kata Sandi (Min. 6 Karakter)
-              </span>
-              <div className="relative">
-                <Input
+            <Field label="Kata Sandi (Min. 6 Karakter)" htmlFor="password" required>
+              <InputWithAdornment
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
@@ -149,12 +148,10 @@ export default function RegisterPage() {
                   required
                   autoComplete="new-password"
                   minLength={6}
-                  className="pr-10"
-                />
-                <button
+                trailingAdornment={<button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
                   aria-label={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
                 >
                   {showPassword ? (
@@ -162,15 +159,11 @@ export default function RegisterPage() {
                   ) : (
                     <Eye className="w-4 h-4" />
                   )}
-                </button>
-              </div>
+                </button>}
+              />
             </Field>
 
-            <Field>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                Konfirmasi Kata Sandi
-              </span>
+            <Field label="Konfirmasi Kata Sandi" htmlFor="confirm-password" required>
               <Input
                 id="confirm-password"
                 name="confirm-password"
@@ -188,7 +181,7 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 loading={loading}
-                className="w-full justify-center py-2.5 text-base font-semibold shadow-xs"
+                className="w-full justify-center py-3 text-sm"
               >
                 {loading ? "Mendaftarkan..." : "Daftar Akun"}
               </Button>

@@ -21,7 +21,7 @@ import { NO_CATEGORY_LABEL } from "@/lib/constants";
 import { toast } from "react-hot-toast";
 import type { Currency } from "@/lib/currencies";
 import { MonthlyTrendChart, CategoryStackedChart, ChartToolbar } from "@/components/charts";
-import { computeMonthlyTrend } from "@/lib/analytics";
+import { computeMonthlyTrend, computeProjectedTrend } from "@/lib/analytics";
 import type { PaymentRecord, Expense } from "@/lib/types";
 import { RecordPaymentModal } from "@/components/RecordPaymentModal";
 import { DEMO_EXPENSES, DEMO_CATEGORIES, DEMO_SETTINGS, getDemoPaymentHistory } from "@/lib/demo-data";
@@ -67,8 +67,10 @@ export default function DashboardPage() {
     activeExpenses: active,
   } = insight;
 
-  const monthlyTrend = computeMonthlyTrend(expenses, paymentHistory, baseCurrency, 12);
+  const actualTrend = computeMonthlyTrend(expenses, paymentHistory, baseCurrency, 12);
+  const projectedTrend = computeProjectedTrend(expenses, baseCurrency, 12);
   const [chartType, setChartType] = useState<"area" | "bar">("area");
+  const [trendMode, setTrendMode] = useState<"actual" | "projected">("projected");
   const [recordPaymentExpense, setRecordPaymentExpense] = useState<Expense | null>(null);
 
   function openRecordPaymentModal(expense: Expense) {
@@ -181,10 +183,10 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       {/* Demo Banner */}
       {isDemoMode && (
-        <div className="mb-6 rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs animate-fadeIn">
+        <div className="mb-6 flex flex-col justify-between gap-4 rounded-xl border border-primary-200 bg-primary-50 p-4 sm:flex-row sm:items-center sm:p-5 animate-fadeIn">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white text-lg shadow-xs">
-              🎮
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-700 text-white">
+              <TrendingUp className="h-5 w-5" aria-hidden />
             </span>
             <div>
               <div className="flex items-center gap-2">
@@ -200,14 +202,14 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
             <Link href="/register">
-              <Button className="text-xs px-3.5 py-2 font-semibold shadow-xs">
+              <Button className="px-3.5 py-2 text-xs">
                 Buat Akun Gratis
               </Button>
             </Link>
             <button
               type="button"
               onClick={() => setIsDemoMode(false)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+              className="ds-btn-secondary px-3 py-2 text-xs"
             >
               Keluar Demo
             </button>
@@ -260,16 +262,8 @@ export default function DashboardPage() {
         />
       ) : (
         <>
-          <section className="relative overflow-hidden rounded-xl border border-primary-100 bg-primary-50 p-6">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_100%_at_100%_0%,rgba(13,148,136,0.14),transparent_60%)]"
-            />
-            <div
-              aria-hidden
-              className="hero-grain pointer-events-none absolute inset-0 opacity-[0.04] mix-blend-multiply"
-            />
-            <div className="relative">
+          <section className="rounded-xl border border-primary-200 bg-primary-50 p-5 sm:p-6">
+            <div>
               <p className="text-sm font-medium text-primary-700">
                 Total biaya bulanan
               </p>
@@ -286,7 +280,7 @@ export default function DashboardPage() {
               </p>
 
               {/* Currency Transparency Badge */}
-              <div className="mt-4 inline-flex flex-wrap items-center gap-1.5 rounded-lg bg-white/85 backdrop-blur-xs px-2.5 py-1.5 text-[11px] font-medium text-slate-600 border border-primary-200/60 shadow-2xs">
+              <div className="mt-4 inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600">
                 <span className="font-semibold text-primary-800">Kurs acuan:</span>
                 <span>$1 = Rp 15.500</span>
                 <span>·</span>
@@ -549,29 +543,26 @@ export default function DashboardPage() {
                 Tren Bulanan
               </h2>
             </div>
-            {paymentHistory.length === 0 ? (
+            {trendMode === "actual" && paymentHistory.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-12 text-center">
                 <p className="text-sm font-medium text-ink-slate">Belum ada data pembayaran</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  Catat pembayaran pertama untuk melihat tren bulanan.
+                  Catat pembayaran pertama, atau lihat estimasi dari biaya aktif Anda.
                 </p>
-                <Link
-                  href="/expenses"
-                  className="ds-btn-primary mt-4 inline-flex items-center gap-1.5"
-                >
-                  <Plus className="h-4 w-4" aria-hidden />
-                  Ke Daftar Biaya
-                </Link>
+                <button type="button" onClick={() => setTrendMode("projected")} className="ds-btn-primary mt-4 inline-flex items-center gap-1.5">
+                  Lihat Proyeksi
+                </button>
               </div>
             ) : (
               <>
                 <Card className="p-5">
-                  <ChartToolbar chartType={chartType} onChartTypeChange={setChartType} baseCurrency={baseCurrency} />
-                  <MonthlyTrendChart data={monthlyTrend} baseCurrency={baseCurrency} chartType={chartType} />
+                  <ChartToolbar chartType={chartType} onChartTypeChange={setChartType} trendMode={trendMode} onTrendModeChange={setTrendMode} baseCurrency={baseCurrency} />
+                  {trendMode === "projected" && <p className="mb-3 text-xs text-slate-500">Estimasi dari biaya aktif saat ini, bukan pembayaran tercatat.</p>}
+                  <MonthlyTrendChart data={trendMode === "actual" ? actualTrend : projectedTrend} baseCurrency={baseCurrency} chartType={chartType} />
                 </Card>
                 <Card className="mt-4 p-5">
                   <h3 className="mb-3 text-sm font-semibold text-ink-slate">Komposisi per Kategori</h3>
-                  <CategoryStackedChart data={monthlyTrend} baseCurrency={baseCurrency} categories={categories} />
+                  <CategoryStackedChart data={trendMode === "actual" ? actualTrend : projectedTrend} baseCurrency={baseCurrency} categories={categories} />
                 </Card>
               </>
             )}

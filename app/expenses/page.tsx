@@ -12,12 +12,12 @@ import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Input, Select } from "@/components/ui/Input";
 import type { Interval, Status } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { NO_CATEGORY_LABEL, NONE_CATEGORY_KEY } from "@/lib/constants";
 import type { Currency } from "@/lib/currencies";
-import { parseCSV, validateRows, CSV_TEMPLATE, importExpenses, type ParsedRow, type ImportError } from "@/lib/import-csv";
-import { ensureCategory } from "@/lib/categories";
+import { parseCSV, validateCSVHeaders, validateRows, CSV_TEMPLATE, importExpenses, type ImportExpenseRow, type ParsedRow, type ImportError } from "@/lib/import-csv";
 
 const INTERVAL_LABEL: Record<Interval, string> = {
   monthly: "Bulanan",
@@ -97,7 +97,8 @@ export default function ExpensesPage() {
   const [importOpen, setImportOpen] = useState(true);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
-  const [validationResult, setValidationResult] = useState<{ valid: any[]; errors: ImportError[] } | null>(null);
+  const [validationResult, setValidationResult] = useState<{ valid: ImportExpenseRow[]; errors: ImportError[] } | null>(null);
+  const [csvFormatError, setCsvFormatError] = useState<string | null>(null);
   const [importLoading, setImportLoading] = useState(false);
 
   function handleFileSelect(file: File) {
@@ -109,10 +110,19 @@ export default function ExpensesPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
+      const headerError = validateCSVHeaders(text);
+      if (headerError) {
+        setParsedRows([]);
+        setValidationResult(null);
+        setCsvFormatError(headerError);
+        toast.error(headerError);
+        return;
+      }
       const rows = parseCSV(text);
       setParsedRows(rows);
       const result = validateRows(rows, categories);
       setValidationResult(result);
+      setCsvFormatError(null);
     };
     reader.readAsText(file);
   }
@@ -137,22 +147,18 @@ export default function ExpensesPage() {
     setImportLoading(true);
     (async () => {
       try {
-        // First, create any new categories
-        const newCategoryNames = new Set<string>();
+        const categoryIds = new Map(categories.map((category) => [category.name.toLowerCase(), category.id]));
         for (const row of validationResult.valid) {
-          if (row.category_id === null && parsedRows.find(r => r.name === row.name)?.category) {
-            const catName = parsedRows.find(r => r.name === row.name)?.category;
-            if (catName && !categories.find(c => c.name.toLowerCase() === catName.toLowerCase())) {
-              newCategoryNames.add(catName);
-            }
+          if (row.category_name && !categoryIds.has(row.category_name.toLowerCase())) {
+            const category = await addCategory({ name: row.category_name });
+            categoryIds.set(row.category_name.toLowerCase(), category.id);
           }
         }
-        for (const catName of newCategoryNames) {
-          await ensureCategory({ categories, addCategory } as any, catName);
-        }
-
-        // Now import expenses
-        const result = await importExpenses(validationResult.valid, {
+        const rowsToImport = validationResult.valid.map(({ category_name, category_source, ...row }) => ({
+          ...row,
+          category_id: category_name ? categoryIds.get(category_name.toLowerCase()) ?? null : null,
+        }));
+        const result = await importExpenses(rowsToImport, {
           addExpense,
           addCategory,
           expenses,
@@ -161,6 +167,7 @@ export default function ExpensesPage() {
         setCsvFile(null);
         setParsedRows([]);
         setValidationResult(null);
+        setCsvFormatError(null);
         setImportOpen(false);
       } catch (err) {
         console.error("Import failed:", err);
@@ -223,7 +230,7 @@ export default function ExpensesPage() {
       />
 
       {/* CSV Import Section */}
-      <Card className="mb-6">
+      <Card id="import-csv" className="mb-6 scroll-mt-20 p-0">
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <h3 className="flex items-center gap-2 text-base font-medium text-ink-slate">
             <FileText className="h-5 w-5 text-primary-600" aria-hidden />
@@ -243,14 +250,26 @@ export default function ExpensesPage() {
         {importOpen && (
           <div className="p-4 space-y-4">
             {!csvFile ? (
-              <div
-                className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-primary-400 hover:bg-primary-50 transition-colors"
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-              >
+              <>
+                <div className="rounded-xl border border-primary-200 bg-primary-50/40 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-ink-slate">1. Mulai dari template resmi</p>
+                      <p className="mt-1 text-xs text-slate-600">Isi <span className="font-medium">name, amount, interval, next_billing_date</span>. Tanggal: YYYY-MM-DD; category boleh kosong untuk saran otomatis.</p>
+                    </div>
+                    <button type="button" onClick={downloadTemplate} className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5 text-xs">
+                      <Download className="h-4 w-4" aria-hidden /> Unduh Template
+                    </button>
+                  </div>
+                </div>
+                <div
+                  className="rounded-lg border border-dashed border-slate-300 p-6 text-center transition-colors hover:border-primary-500 hover:bg-primary-50 sm:p-8"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
                 <Upload className="h-12 w-12 mx-auto text-slate-400 mb-3" aria-hidden />
-                <p className="text-sm font-medium text-ink-slate">Seret file CSV ke sini atau klik untuk pilih</p>
-                <p className="text-xs text-slate-500 mt-1">Format: .csv (maksimal 1MB)</p>
+                <p className="text-sm font-medium text-ink-slate">2. Unggah template yang sudah diisi</p>
+                <p className="text-xs text-slate-500 mt-1">Seret file CSV ke sini atau pilih file (maksimal 1MB).</p>
                 <input
                   type="file"
                   accept=".csv"
@@ -267,6 +286,7 @@ export default function ExpensesPage() {
                   Pilih File
                 </button>
               </div>
+              </>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -279,12 +299,15 @@ export default function ExpensesPage() {
                       setCsvFile(null);
                       setParsedRows([]);
                       setValidationResult(null);
+                      setCsvFormatError(null);
                     }}
                     className="text-slate-500 hover:text-slate-700 text-sm"
                   >
                     Hapus file
                   </button>
                 </div>
+
+                {csvFormatError && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{csvFormatError}</p>}
 
                 {validationResult && (
                   <>
@@ -324,7 +347,7 @@ export default function ExpensesPage() {
                                 <td className="px-3 py-2 truncate max-w-[150px]">{row.name}</td>
                                 <td className="px-3 py-2 tabular-nums">{row.amount}</td>
                                 <td className="px-3 py-2">{row.interval}</td>
-                                <td className="px-3 py-2">{row.category || "—"}</td>
+                                <td className="px-3 py-2">{row.category || validationResult.valid.find((valid) => valid.name === row.name)?.category_name || "—"}</td>
                                 <td className="px-3 py-2">{row.status || "active"}</td>
                                 <td className="px-3 py-2">{row.next_billing_date}</td>
                                 <td className="px-3 py-2">{row.currency || "IDR"}</td>
@@ -347,6 +370,12 @@ export default function ExpensesPage() {
                         </tbody>
                       </table>
                     </div>
+
+                    {validationResult.errors.length > 0 && (
+                      <ul className="space-y-1 text-xs text-rose-700" aria-label="Rincian baris bermasalah">
+                        {validationResult.errors.map((error) => <li key={error.rowIndex}>Baris {error.rowIndex}: {error.message}</li>)}
+                      </ul>
+                    )}
 
                     <div className="flex items-center justify-end gap-2 pt-2">
                       <button
@@ -393,7 +422,7 @@ export default function ExpensesPage() {
           <label htmlFor="search" className="sr-only">
             Cari biaya
           </label>
-          <input
+          <Input
             id="search"
             type="search"
             value={query}
@@ -402,7 +431,7 @@ export default function ExpensesPage() {
             className="ds-input w-full py-2 pl-9 pr-3"
           />
         </div>
-        <select
+        <Select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="ds-input px-3 py-2"
@@ -415,8 +444,8 @@ export default function ExpensesPage() {
               {c.name}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="ds-input px-3 py-2"
@@ -427,7 +456,7 @@ export default function ExpensesPage() {
               {f.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {filtered.length === 0 ? (
@@ -504,7 +533,7 @@ export default function ExpensesPage() {
                       type="button"
                       onClick={() => handlePause(e)}
                       aria-label={`Jeda ${e.name}`}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-amber-50 hover:text-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      className="rounded-md p-1.5 text-accent-700 hover:bg-amber-50 hover:text-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
                       title="Jeda"
                     >
                       <Pause className="h-4 w-4" />
@@ -515,7 +544,7 @@ export default function ExpensesPage() {
                       type="button"
                       onClick={() => handleResume(e)}
                       aria-label={`Aktifkan ${e.name}`}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      className="rounded-md p-1.5 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
                       title="Aktifkan"
                     >
                       <Play className="h-4 w-4" />
@@ -526,7 +555,7 @@ export default function ExpensesPage() {
                       type="button"
                       onClick={() => handleMarkAsPaid(e)}
                       aria-label={`Tandai ${e.name} sebagai dibayar`}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      className="rounded-md p-1.5 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
                       title="Tandai dibayar"
                     >
                       <CheckCircle2 className="h-4 w-4" />
@@ -563,7 +592,7 @@ export default function ExpensesPage() {
                       type="button"
                       onClick={() => setConfirmDeleteId(e.id)}
                       aria-label={`Hapus ${e.name}`}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      className="rounded-md p-1.5 text-rose-700 hover:bg-rose-50 hover:text-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

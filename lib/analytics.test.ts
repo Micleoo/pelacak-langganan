@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { computeMonthlyTrend, computeCategoryTrend, getAvailableMonths, recordPayment } from "./analytics";
+import { computeMonthlyTrend, computeProjectedTrend, computeCategoryTrend, getAvailableMonths, recordPayment } from "./analytics";
 import type { Expense, PaymentRecord, Category } from "./types";
 import { todayUTC, toISO, addMonths } from "./format";
 
@@ -172,6 +172,25 @@ describe("analytics", () => {
       const trend = computeMonthlyTrend(mockExpenses, mockPayments, "IDR", 12);
       const thisMonthTrend = trend.find((t) => t.month === thisMonthKey);
       expect(thisMonthTrend?.byCategory.get("cat2")).toBe(310000);
+    });
+  });
+
+  describe("computeProjectedTrend", () => {
+    it("fills the full window from active expenses using monthly normalized base-currency values", () => {
+      const trend = computeProjectedTrend(mockExpenses, "IDR", 12);
+      expect(trend).toHaveLength(12);
+      expect(trend.every((month) => month.total === 150000 + 189000 / 12 + 310000)).toBe(true);
+      expect(trend[0].byCategory.get("cat1")).toBe(150000 + 189000 / 12);
+      expect(trend[0].byCategory.get("cat2")).toBe(310000);
+    });
+
+    it("excludes paused and cancelled expenses", () => {
+      const trend = computeProjectedTrend([
+        ...mockExpenses,
+        { ...mockExpenses[0], id: "paused", status: "paused" as const },
+        { ...mockExpenses[0], id: "cancelled", status: "cancelled" as const },
+      ], "IDR", 2);
+      expect(trend.every((month) => month.total === 150000 + 189000 / 12 + 310000)).toBe(true);
     });
   });
 

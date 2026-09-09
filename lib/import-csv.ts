@@ -1,5 +1,6 @@
 import type { Category, ExpenseInput } from "./data";
 import type { Currency } from "./currencies";
+import { suggestCategoryName } from "./categories";
 
 export interface ParsedRow {
   [key: string]: string;
@@ -14,6 +15,11 @@ export interface ImportError {
 export interface ImportResult {
   imported: number;
   skipped: number;
+}
+
+export interface ImportExpenseRow extends ExpenseInput {
+  category_name: string | null;
+  category_source: "provided" | "suggested" | "none";
 }
 
 const REQUIRED_FIELDS = ["name", "amount", "interval", "next_billing_date"] as const;
@@ -53,6 +59,16 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
+export function validateCSVHeaders(text: string): string | null {
+  const header = text.trim().split(/\r?\n/, 1)[0];
+  if (!header) return "File CSV kosong. Unduh template lalu isi minimal satu baris biaya.";
+  const headers = parseCSVLine(header).map((value) => value.toLowerCase().trim());
+  const missing = REQUIRED_FIELDS.filter((field) => !headers.includes(field));
+  return missing.length > 0
+    ? `Header wajib tidak ditemukan: ${missing.join(", ")}. Gunakan template impor dari aplikasi.`
+    : null;
+}
+
 export function parseCSV(text: string): ParsedRow[] {
   const lines = text.trim().split("\n");
   if (lines.length < 2) return [];
@@ -85,11 +101,11 @@ function getCategoryId(categoryName: string, existingCategories: Category[]): st
   return match?.id ?? null;
 }
 
-function validateAmount(value: string): { valid: boolean; amount?: number; error?: string } {
+function validateAmount(value: string, currency: string): { valid: boolean; amount?: number; error?: string } {
   const num = Number(value);
   if (isNaN(num)) return { valid: false, error: "Nominal harus berupa angka" };
   if (num <= 0) return { valid: false, error: "Nominal harus lebih dari 0" };
-  if (!Number.isInteger(num)) return { valid: false, error: "Nominal harus bilangan bulat" };
+  if (currency === "IDR" && !Number.isInteger(num)) return { valid: false, error: "Nominal IDR harus bilangan bulat" };
   return { valid: true, amount: num };
 }
 
@@ -104,8 +120,8 @@ function validateDate(value: string): { valid: boolean; error?: string } {
 export function validateRows(
   rows: ParsedRow[],
   existingCategories: Category[]
-): { valid: ExpenseInput[]; errors: ImportError[] } {
-  const valid: ExpenseInput[] = [];
+): { valid: ImportExpenseRow[]; errors: ImportError[] } {
+  const valid: ImportExpenseRow[] = [];
   const errors: ImportError[] = [];
 
   for (let i = 0; i < rows.length; i++) {
@@ -125,7 +141,8 @@ export function validateRows(
     }
 
     // Validate amount
-    const amountResult = validateAmount(row.amount);
+    const currency = row.currency || "IDR";
+    const amountResult = validateAmount(row.amount, currency);
     if (!amountResult.valid) {
       rowErrors.push(amountResult.error!);
     }
@@ -165,8 +182,10 @@ export function validateRows(
     }
 
     // All valid - construct ExpenseInput
-    const categoryId = getCategoryId(row.category || "", existingCategories);
-    const isNewCategory = row.category && !categoryId;
+    const providedCategory = row.category?.trim() || null;
+    const suggestedCategory = providedCategory ? null : suggestCategoryName(row.name);
+    const categoryName = providedCategory ?? suggestedCategory;
+    const categoryId = getCategoryId(categoryName ?? "", existingCategories);
 
     valid.push({
       name: row.name.trim(),
@@ -177,10 +196,10 @@ export function validateRows(
       next_billing_date: row.next_billing_date,
       notify_days_before: row.notify_days_before ? Number(row.notify_days_before) : null,
       last_paid_date: null,
-      currency: (row.currency as Currency) || "IDR",
+      currency: currency as Currency,
+      category_name: categoryName,
+      category_source: providedCategory ? "provided" : suggestedCategory ? "suggested" : "none",
     });
-
-    // If new category, we'll need to create it (handled by caller)
   }
 
   return { valid, errors };

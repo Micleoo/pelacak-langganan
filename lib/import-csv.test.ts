@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { parseCSV, validateRows, importExpenses, CSV_TEMPLATE } from "./import-csv";
+import { parseCSV, validateCSVHeaders, validateRows, importExpenses, CSV_TEMPLATE } from "./import-csv";
 import type { Category, ExpenseInput } from "./data";
 
 const mockCategories: Category[] = [
@@ -242,6 +242,21 @@ Netflix,150000,monthly`;
       expect(rows.length).toBeGreaterThan(1);
       expect(rows[1]).toContain("Netflix");
       expect(rows[1]).toContain("149000");
+    });
+  });
+
+  describe("template header validation and auto category", () => {
+    it("explains required headers that are missing", () => {
+      expect(validateCSVHeaders("name,price\nNetflix,149000")).toContain("amount");
+      expect(validateCSVHeaders(CSV_TEMPLATE)).toBeNull();
+    });
+
+    it("suggests and retains a category name when the CSV category is blank", () => {
+      const { valid } = validateRows([
+        { name: "ChatGPT Plus", amount: "20", interval: "monthly", next_billing_date: "2026-10-01", currency: "USD" },
+      ], mockCategories);
+      expect(valid[0].category_name).toBe("AI Tools");
+      expect(valid[0].category_source).toBe("suggested");
     });
   });
 });

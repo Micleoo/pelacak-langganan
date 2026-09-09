@@ -7,6 +7,7 @@ import type { Expense } from "@/lib/types";
 import { toast } from "react-hot-toast";
 import { SUPPORTED_CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currencies";
 import { parseISO } from "@/lib/format";
+import { Field, InputWithAdornment, Select, Textarea } from "@/components/ui/Input";
 
 interface RecordPaymentModalProps {
   expense: Expense;
@@ -54,9 +55,9 @@ export function RecordPaymentModal({ expense, isOpen, onClose, onSuccess }: Reco
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-6">
-        <div className="flex items-center justify-between mb-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div className="w-full max-w-md rounded-t-xl border border-slate-200 bg-white p-5 sm:rounded-xl sm:p-6">
+        <div className="mb-5 flex items-center justify-between border-b border-slate-100 pb-4">
           <h2 id="modal-title" className="text-lg font-semibold text-ink-slate">
             Catat Pembayaran
           </h2>
@@ -64,7 +65,7 @@ export function RecordPaymentModal({ expense, isOpen, onClose, onSuccess }: Reco
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-slate-400 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-full p-1"
+            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
             aria-label="Tutup modal"
           >
             <X className="h-5 w-5" />
@@ -76,78 +77,40 @@ export function RecordPaymentModal({ expense, isOpen, onClose, onSuccess }: Reco
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="payment-amount" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Jumlah <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden />
-              <input
-                id="payment-amount"
-                type="number"
-                min="1"
-                step="1"
-                inputMode="numeric"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value) || 0)}
-                className="ds-input pl-9 pr-3 py-2 tabular-nums"
-                required
-              />
-            </div>
-          </div>
+          <Field label="Jumlah" htmlFor="payment-amount" required>
+            <InputWithAdornment id="payment-amount" type="number" min="1" step="1" inputMode="numeric" value={amount} onChange={(e) => setAmount(Number(e.target.value) || 0)} className="tabular-nums" leadingAdornment={<DollarSign className="h-4 w-4" />} required />
+          </Field>
 
-          <div>
-            <label htmlFor="payment-currency" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Mata Uang
-            </label>
-            <select
+          <Field label="Mata Uang" htmlFor="payment-currency">
+            <Select
               id="payment-currency"
               value={currency}
               onChange={(e) => setCurrency(e.target.value as Currency)}
-              className="ds-input"
             >
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
                   {CURRENCY_LABELS[c]}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
 
-          <div>
-            <label htmlFor="payment-date" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Tanggal Bayar <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden />
-              <input
-                id="payment-date"
-                type="date"
-                value={paidAt}
-                onChange={(e) => setPaidAt(e.target.value)}
-                max={new Date().toISOString().slice(0, 10)}
-                className="ds-input pl-9 pr-3 py-2 tabular-nums"
-                required
-              />
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Tidak boleh di masa depan</p>
-          </div>
+          <Field label="Tanggal Bayar" htmlFor="payment-date" required helperText="Tidak boleh di masa depan">
+            <InputWithAdornment id="payment-date" type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} max={new Date().toISOString().slice(0, 10)} className="tabular-nums" leadingAdornment={<Calendar className="h-4 w-4" />} required />
+          </Field>
 
-          <div>
-            <label htmlFor="payment-note" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Catatan (opsional)
-            </label>
-            <textarea
+          <Field label="Catatan (opsional)" htmlFor="payment-note">
+            <Textarea
               id="payment-note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={3}
-              className="ds-input resize-none"
+              className="resize-none"
               placeholder="Catatan tambahan..."
             />
-          </div>
+          </Field>
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}

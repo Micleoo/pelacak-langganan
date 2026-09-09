@@ -56,6 +56,34 @@ export async function ensureCategory(
   return (await store.addCategory({ name: trimmed })).id;
 }
 
+/**
+ * Mengembalikan nama kategori hanya untuk layanan yang dapat dikenali dengan
+ * cukup yakin. Nilai null sengaja dipakai sebagai fallback agar aplikasi tidak
+ * memaksakan klasifikasi yang keliru.
+ */
+export function suggestCategoryName(expenseName: string): string | null {
+  const name = expenseName.toLowerCase();
+  if (/netflix|spotify|youtube|disney|vidio|prime video|apple music|hbo|viu/.test(name)) {
+    return "Streaming";
+  }
+  if (/chatgpt|openai|claude|anthropic|midjourney|github copilot|gemini|cursor|perplexity/.test(name)) {
+    return "AI Tools";
+  }
+  if (/indihome|telkom|biznet|wifi|internet|listrik|pln|air|pdam|pulsa/.test(name)) {
+    return "Utilitas";
+  }
+  if (/icloud|google one|dropbox|onedrive|google drive/.test(name)) {
+    return "Penyimpanan";
+  }
+  if (/gym|fitness|strava|classpass/.test(name)) {
+    return "Fitness";
+  }
+  if (/notion|figma|canva|slack|zoom|microsoft 365|office 365/.test(name)) {
+    return "Produktivitas";
+  }
+  return null;
+}
+
 function hashName(name: string): number {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {

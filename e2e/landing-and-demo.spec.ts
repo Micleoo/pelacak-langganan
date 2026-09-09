@@ -13,17 +13,16 @@ test.describe("Landing Page & Interactive Demo Mode", () => {
     ).toBeVisible();
 
     // 2. Feature Cards
-    await expect(page.getByText("Scan & Parse Email Tagihan")).toBeVisible();
-    await expect(page.getByText("Multi-Mata Uang Otomatis")).toBeVisible();
-    await expect(page.getByText("Jeda Langganan & Anti-Tunggakan")).toBeVisible();
-    await expect(page.getByText("Grafik Tren Pengeluaran 12 Bulan")).toBeVisible();
+    await expect(page.getByText("Scan tagihan tanpa menyalin ulang")).toBeVisible();
+    await expect(page.getByText("Satu total untuk semua mata uang")).toBeVisible();
+    await expect(page.getByText("Tahu apa yang perlu dibayar")).toBeVisible();
+    await expect(page.getByText("Bedakan aktual dan proyeksi")).toBeVisible();
 
     // 3. Comparison Table
     await expect(
-      page.getByRole("heading", { name: "Mengapa Tidak Cukup Pakai Spreadsheet Biasa?" })
+      page.getByRole("heading", { name: "Bukan spreadsheet lain yang harus terus Anda rawat." })
     ).toBeVisible();
-    await expect(page.getByText("Spreadsheet Manual")).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Pelacak Langganan" })).toBeVisible();
+    await expect(page.getByText("Pelacak Langganan menyingkirkan pekerjaan berulang")).toBeVisible();
 
     // 4. CTA Buttons
     await expect(page.getByRole("link", { name: "Mulai Gratis Sekarang" })).toBeVisible();
@@ -49,6 +48,12 @@ test.describe("Landing Page & Interactive Demo Mode", () => {
     // Verify Currency Reference Badge is present
     await expect(page.getByText(/Kurs acuan:/)).toBeVisible();
     await expect(page.getByText(/\$1 = Rp 15\.500/)).toBeVisible();
+
+    // Proyeksi langsung tersedia tanpa harus mencatat pembayaran lebih dulu.
+    await expect(page.getByRole("radio", { name: "Proyeksi" })).toBeVisible();
+    await expect(page.getByText("Estimasi dari biaya aktif saat ini, bukan pembayaran tercatat.")).toBeVisible();
+    await page.getByRole("radio", { name: "Aktual" }).click();
+    await expect(page.getByRole("radio", { name: "Aktual" })).toBeChecked();
 
     // Test paying an overdue expense in demo mode
     const payButton = page.locator("button[aria-label='Tandai IndiHome Fiber 50Mbps sebagai dibayar']");

@@ -9,11 +9,12 @@ import type { Expense, Interval, Status } from "@/lib/types";
 import { type Currency, SUPPORTED_CURRENCIES, CURRENCY_LABELS } from "@/lib/currencies";
 import { Button } from "./ui/Button";
 import { toast } from "react-hot-toast";
-import { ensureCategory } from "@/lib/categories";
+import { ensureCategory, suggestCategoryName } from "@/lib/categories";
 import { NEW_CATEGORY_KEY, NO_CATEGORY_LABEL } from "@/lib/constants";
 import { InvoiceScannerModal } from "./InvoiceScannerModal";
 import { Sparkles } from "lucide-react";
 import type { ParsedInvoice } from "@/lib/invoice-parser";
+import { Field, Input, Select } from "./ui/Input";
 
 const INTERVALS: { value: Interval; label: string }[] = [
   { value: "monthly", label: "Bulanan" },
@@ -66,7 +67,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
     existing?.interval ?? "monthly",
   );
   const [categoryId, setCategoryId] = useState<string>(
-    existing?.category_id ?? categories[0]?.id ?? "",
+    existing?.category_id ?? "",
   );
   const [status, setStatus] = useState<Status>(existing?.status ?? "active");
   const [currency, setCurrency] = useState<Currency>((existing?.currency as Currency) ?? (baseCurrency as Currency));
@@ -79,6 +80,16 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [categorySuggested, setCategorySuggested] = useState(false);
+
+  function applySuggestedCategory(expenseName: string) {
+    const suggested = suggestCategoryName(expenseName);
+    if (!suggested) return;
+    const matched = categories.find((category) => category.name.toLowerCase() === suggested.toLowerCase());
+    setCategoryId(matched?.id ?? NEW_CATEGORY_KEY);
+    setNewCategoryName(matched ? "" : suggested);
+    setCategorySuggested(true);
+  }
 
   function handleApplyInvoice(inv: ParsedInvoice) {
     setName(inv.name);
@@ -86,16 +97,18 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
     setCurrency(inv.currency);
     setInterval(inv.interval);
     setNextBillingDate(inv.next_billing_date);
-    if (inv.suggested_category) {
+    const suggestedCategory = inv.suggested_category ?? suggestCategoryName(inv.name);
+    if (suggestedCategory) {
       const matched = categories.find(
-        (c) => c.name.toLowerCase() === inv.suggested_category?.toLowerCase()
+        (c) => c.name.toLowerCase() === suggestedCategory.toLowerCase()
       );
       if (matched) {
         setCategoryId(matched.id);
       } else {
         setCategoryId(NEW_CATEGORY_KEY);
-        setNewCategoryName(inv.suggested_category);
+        setNewCategoryName(suggestedCategory);
       }
+      setCategorySuggested(true);
     }
     toast.success(`Data dari ${inv.name} berhasil diterapkan ke form!`);
   }
@@ -198,7 +211,6 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
     }
   }
 
-  const inputClass = "ds-input w-full";
   const statusOptions = isEditMode ? STATUSES_EDIT : STATUSES_CREATE;
 
   return (
@@ -221,7 +233,7 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
       </div>
 
       {!existing && (
-        <div className="mb-6 rounded-xl border border-primary-200 bg-primary-50/40 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-lg border border-primary-200 bg-primary-50 p-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-primary-100 text-primary-700">
               <Sparkles className="h-5 w-5" />
@@ -249,33 +261,24 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
       />
 
       <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <div>
-          <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-ink-slate">
-            Nama biaya
-          </label>
-          <input
+        <Field label="Nama biaya" htmlFor="name" required error={errors.name}>
+          <Input
             id="name"
             type="text"
             value={name}
             onChange={(e) => {
-              setName(e.target.value);
+              const value = e.target.value;
+              setName(value);
+              if (!existing && (categoryId === "" || categorySuggested)) applySuggestedCategory(value);
               clearError("name");
             }}
             placeholder="Netflix"
-            className={inputClass}
-            aria-invalid={!!errors.name}
           />
-          {errors.name && (
-            <p className="mt-1 text-sm text-rose-600">{errors.name}</p>
-          )}
-        </div>
+        </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="amount" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Nominal ({currency})
-            </label>
-            <input
+          <Field label={`Nominal (${currency})`} htmlFor="amount" required error={errors.amount}>
+            <Input
               id="amount"
               type="number"
               min="0"
@@ -287,70 +290,55 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
                 clearError("amount");
               }}
               placeholder={currency === "IDR" ? "149000" : "9.99"}
-              className={`${inputClass} tabular-nums`}
-              aria-invalid={!!errors.amount}
+              className="tabular-nums"
             />
-            {errors.amount && (
-              <p className="mt-1 text-sm text-rose-600">{errors.amount}</p>
-            )}
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="currency" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Mata Uang
-            </label>
-            <select
+          <Field label="Mata Uang" htmlFor="currency">
+            <Select
               id="currency"
               value={currency}
               onChange={(e) => {
                 setCurrency(e.target.value as Currency);
                 clearError("currency");
               }}
-              className={inputClass}
             >
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
                   {CURRENCY_LABELS[c]}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="interval" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Siklus tagihan
-            </label>
-            <select
+          <Field label="Siklus tagihan" htmlFor="interval">
+            <Select
               id="interval"
               value={interval}
               onChange={(e) => {
                 setInterval(e.target.value as Interval);
                 clearError("interval");
               }}
-              className={inputClass}
             >
               {INTERVALS.map((i) => (
                 <option key={i.value} value={i.value}>
                   {i.label}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
 
-          <div>
-            <label htmlFor="category" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Kategori
-            </label>
-            <select
+          <Field label="Kategori" htmlFor="category" error={errors.category} helperText={categorySuggested ? "Disarankan otomatis berdasarkan nama layanan — tetap bisa Anda ubah." : undefined}>
+            <Select
               id="category"
               value={categoryId}
               onChange={(e) => {
                 setCategoryId(e.target.value);
+                setCategorySuggested(false);
                 clearError("category");
               }}
-              className={inputClass}
               aria-invalid={!!errors.category}
             >
               <option value="">{NO_CATEGORY_LABEL}</option>
@@ -360,9 +348,9 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
                 </option>
               ))}
               <option value={NEW_CATEGORY_KEY}>+ Buat kategori baru…</option>
-            </select>
+            </Select>
             {creatingNewCategory && (
-              <input
+              <Input
                 type="text"
                 autoFocus
                 value={newCategoryName}
@@ -371,51 +359,33 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
                   clearError("category");
                 }}
                 placeholder="Nama kategori baru"
-                className={`${inputClass} mt-2`}
+                className="mt-2"
                 aria-invalid={!!errors.category}
               />
             )}
-            {errors.category && (
-              <p className="mt-1 text-sm text-rose-600">{errors.category}</p>
-            )}
-          </div>
+          </Field>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="status" className="mb-1.5 block text-sm font-medium text-ink-slate">
-              Status
-            </label>
-            <select
+          <Field label="Status" htmlFor="status" helperText={!isEditMode ? "Status Terlewat hanya tersedia saat mengedit biaya yang sudah jatuh tempo." : undefined}>
+            <Select
               id="status"
               value={status}
               onChange={(e) => {
                 setStatus(e.target.value as Status);
                 clearError("status");
               }}
-              className={inputClass}
             >
               {statusOptions.map((s) => (
                 <option key={s.value} value={s.value} disabled={!isEditMode && s.value === "overdue"}>
                   {s.label}
                 </option>
               ))}
-            </select>
-            {!isEditMode && (
-              <p className="mt-1 text-xs text-slate-500">
-                Status "Terlewat" hanya tersedia saat mengedit biaya yang sudah jatuh tempo.
-              </p>
-            )}
-          </div>
+            </Select>
+          </Field>
 
-          <div>
-            <label
-              htmlFor="nextBillingDate"
-              className="mb-1.5 block text-sm font-medium text-ink-slate"
-            >
-              Tanggal tagihan berikutnya
-            </label>
-            <input
+          <Field label="Tanggal tagihan berikutnya" htmlFor="nextBillingDate" required error={errors.date}>
+            <Input
               id="nextBillingDate"
               type="date"
               value={nextBillingDate}
@@ -423,13 +393,9 @@ export function ExpenseForm({ expenseId }: { expenseId?: string }) {
                 setNextBillingDate(e.target.value);
                 clearError("date");
               }}
-              className={`${inputClass} tabular-nums`}
-              aria-invalid={!!errors.date}
+              className="tabular-nums"
             />
-            {errors.date && (
-              <p className="mt-1 text-sm text-rose-600">{errors.date}</p>
-            )}
-          </div>
+          </Field>
         </div>
 
         <div className="rounded-xl border border-primary-100 bg-primary-50/80 p-4 space-y-1">

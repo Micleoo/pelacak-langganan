@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <StoreProvider>
             <ToastProvider />
             <SiteHeader />
-            <main id="main" className="flex-1 pb-16 sm:pb-0">{children}</main>
+            <main id="main" className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] sm:pb-0">{children}</main>
             <BottomNav />
           </StoreProvider>
         </AuthProvider>

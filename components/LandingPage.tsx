@@ -1,284 +1,52 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ShieldCheck,
-  Zap,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
-  Receipt,
-  Scan,
-  Coins,
-  Calendar,
-  CheckCircle2,
-  Lock,
-  PlayCircle,
-  HelpCircle,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { ArrowRight, CalendarClock, Check, CheckCircle2, Coins, Play, ScanLine, ShieldCheck, TrendingUp } from "lucide-react";
 
-interface LandingPageProps {
-  onStartDemo: () => void;
-}
+interface LandingPageProps { onStartDemo: () => void; }
+
+const features = [
+  ["Scan tagihan tanpa menyalin ulang", "Tempel isi email untuk mengambil layanan, nominal, serta tanggal tagihan dalam hitungan detik.", ScanLine],
+  ["Satu total untuk semua mata uang", "IDR, USD, EUR, dan SGD dinormalisasi ke mata uang dasar yang Anda pilih.", Coins],
+  ["Tahu apa yang perlu dibayar", "Lihat jatuh tempo, jeda biaya, dan tangani tunggakan langsung dari dashboard.", CalendarClock],
+  ["Bedakan aktual dan proyeksi", "Lihat pembayaran tercatat atau simulasi biaya aktif agar pola bulanan lebih mudah dibaca.", TrendingUp],
+] as const;
 
 export function LandingPage({ onStartDemo }: LandingPageProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 text-slate-900 pb-20">
-      {/* 1. Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24">
-        {/* Background glow effects */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-teal-400/10 blur-[120px] rounded-full pointer-events-none" />
-
-        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 text-center">
-          {/* Trust Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200/80 text-teal-800 text-xs font-semibold mb-6 shadow-xs animate-fadeIn">
-            <ShieldCheck className="w-4 h-4 text-teal-600" />
-            <span>100% Client-Side Privacy · Tanpa Kartu Kredit · Gratis Selamanya</span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15] mb-6">
-            Ketahui Ke Mana Uang <span className="text-teal-600">Langgananmu Pergi</span> Setiap Bulan
-          </h1>
-
-          {/* Subheadline */}
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 leading-relaxed mb-8">
-            Netflix, Spotify, tool AI, dan tagihan rutin seringkali luput dicatat karena siklus dan mata uang berbeda. Satukan semuanya dalam satu dashboard cerdas, normalisasikan ke biaya bulanan, dan cegah tunggakan.
-          </p>
-
-          {/* CTA Group */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12">
-            <Link href="/register" className="w-full sm:w-auto">
-              <Button
-                className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold shadow-md hover:shadow-lg transition-all"
-              >
-                <span>Mulai Gratis Sekarang</span>
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+    <main className="overflow-hidden bg-white text-ink-slate">
+      <section className="relative mx-auto max-w-6xl px-5 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24">
+        <div className="relative mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary-100 bg-white px-3.5 py-1.5 text-xs font-medium text-primary-800"><ShieldCheck className="h-3.5 w-3.5" aria-hidden />100% Client-Side Privacy · Tanpa Kartu Kredit · Gratis Selamanya</div>
+          <h1 className="mx-auto mt-7 max-w-4xl text-5xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-6xl lg:text-7xl lg:leading-[1.02]">Ketahui Ke Mana Uang Langgananmu Pergi Setiap Bulan</h1>
+          <p className="mx-auto mt-7 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Satukan biaya berulang yang tersebar, bandingkan semuanya dalam satu mata uang, dan lihat apa yang membutuhkan perhatian sebelum jatuh tempo.</p>
+          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/register" className="ds-btn-primary inline-flex min-h-12 w-full items-center justify-center gap-2 px-6 py-3 text-base sm:w-auto">
+              <span className="whitespace-nowrap">Mulai Gratis Sekarang</span>
+              <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
             </Link>
-
-            <button
-              type="button"
-              onClick={onStartDemo}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-teal-200 bg-white text-teal-800 hover:bg-teal-50/70 font-semibold text-base shadow-xs transition-all hover:border-teal-300"
-            >
-              <PlayCircle className="w-5 h-5 text-teal-600" />
-              <span>Coba Demo Interaktif (Tanpa Akun)</span>
+            <button type="button" onClick={onStartDemo} className="ds-btn-secondary inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 py-3 text-sm sm:w-auto">
+              <Play className="h-4 w-4 shrink-0 fill-current" aria-hidden />
+              <span className="whitespace-nowrap">Coba Demo Interaktif (Tanpa Akun)</span>
             </button>
           </div>
-
-          {/* Micro-social Proof */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-medium text-slate-500">
-            <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-teal-600" />
-              Multi-Mata Uang (IDR, USD, EUR, SGD)
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-teal-600" />
-              Scan Email & Invoice Otomatis
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-teal-600" />
-              Grafik Tren 12 Bulan
-            </span>
-          </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-slate-500">{["Multi-mata uang", "Pengingat tagihan", "Data terisolasi"].map((item) => <span key={item} className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-primary-600" aria-hidden />{item}</span>)}</div>
         </div>
+        <div className="relative mx-auto mt-16 max-w-5xl border border-slate-200 bg-slate-50 p-2 sm:mt-20 sm:p-3"><div className="border border-slate-200 bg-white"><div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 sm:px-5"><div className="flex items-center gap-1.5" aria-hidden><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="ml-2 text-xs font-medium text-slate-400">pelacaklangganan.app</span></div><span className="text-xs font-semibold text-primary-700">Dashboard</span></div><div className="grid gap-4 p-5 sm:grid-cols-[1.15fr_0.85fr] sm:p-8"><div className="border border-slate-200 bg-slate-50 p-5 sm:p-6"><p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Biaya bulanan</p><p className="mt-3 text-4xl font-semibold tracking-[-0.04em] tabular-nums text-slate-950 sm:text-5xl">Rp 906.990</p><p className="mt-2 text-sm text-slate-500">Dihitung dari 6 biaya aktif</p><div className="mt-7 space-y-3">{[["Streaming", 72, "bg-primary-600"], ["AI Tools", 51, "bg-cat-2"], ["Utilitas", 32, "bg-cat-4"]].map(([label, width, color]) => <div key={label as string} className="flex items-center gap-3"><span className={`h-2.5 w-2.5 rounded-full ${color}`} /><span className="w-20 text-xs text-slate-600">{label}</span><span className="h-1.5 flex-1 bg-slate-200"><span className={`block h-full ${color}`} style={{ width: `${width}%` }} /></span></div>)}</div></div><div className="border border-slate-200 p-5 sm:p-6"><p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">Perlu perhatian</p><div className="mt-5 space-y-4">{[["Netflix Premium", "2 hari lagi", "Rp 186.000 · Streaming", "text-amber-700"], ["ChatGPT Plus", "12 hari lagi", "$20.00 · AI Tools", "text-slate-600"]].map(([name, due, detail, dueColor]) => <div key={name} className="border-b border-slate-100 pb-4"><div className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">{name}</span><span className={`text-xs font-medium ${dueColor}`}>{due}</span></div><p className="mt-1 text-xs text-slate-500">{detail}</p></div>)}<button type="button" onClick={onStartDemo} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:text-primary-800">Buka data contoh <ArrowRight className="h-3.5 w-3.5" aria-hidden /></button></div></div></div></div></div>
       </section>
-
-      {/* 2. Interactive Mockup Preview Card */}
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 mb-20">
-        <div className="relative rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xl overflow-hidden">
-          {/* Top Mockup Header Bar */}
-          <div className="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-amber-400" />
-              <div className="w-3 h-3 rounded-full bg-emerald-400" />
-              <span className="ml-2 text-xs font-mono text-slate-400">pelacak-langganan.app/dashboard</span>
-            </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-100">
-              Live Interactive Preview
-            </span>
+      <section className="border-y border-slate-200 bg-slate-50"><div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28"><div className="max-w-2xl"><h2 className="text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl">Bukan spreadsheet lain yang harus terus Anda rawat.</h2><p className="mt-4 text-base leading-7 text-slate-600">Pelacak Langganan menyingkirkan pekerjaan berulang agar Anda cukup mencatat sekali dan kembali saat membutuhkan jawaban.</p></div><div className="mt-12 grid gap-x-12 gap-y-10 sm:grid-cols-2">{features.map(([title, description, Icon]) => <article key={title} className="border-t border-slate-300 pt-5"><Icon className="h-5 w-5 text-primary-600" aria-hidden /><h3 className="mt-4 text-base font-semibold text-slate-950">{title}</h3><p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{description}</p></article>)}</div></div></section>
+      <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
+        <div className="flex flex-col justify-between gap-8 border-y border-slate-200 py-10 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-sm font-medium text-primary-700">Mulai dalam hitungan menit</p>
+            <h2 className="mt-3 max-w-xl text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-4xl">Catat yang sedang berjalan, lalu biarkan insight bekerja.</h2>
           </div>
-
-          {/* Hero Numbers Preview Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/60">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Biaya Bulanan</span>
-              <div className="text-3xl font-extrabold text-slate-900 mt-1 tabular-nums">Rp 906.990</div>
-              <span className="text-[11px] text-teal-600 font-medium">Termasuk konversi USD 30.00</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/60">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Jatuh Tempo Terdekat</span>
-              <div className="text-base font-bold text-slate-900 mt-1">Netflix Premium</div>
-              <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                2 hari lagi (Rp 186.000)
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/60">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Deteksi Tunggakan</span>
-              <div className="text-base font-bold text-slate-900 mt-1">1 Tagihan Terlewat</div>
-              <span className="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800">
-                IndiHome (Terlewat 2 hari)
-              </span>
-            </div>
-          </div>
-
-          {/* Interactive Banner inside Preview */}
-          <div className="p-4 rounded-xl bg-teal-600 text-white flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-sm">
-              <span className="font-bold">Ingin mencoba langsung?</span> Jelajahi dashboard lengkap dengan data contoh realistis.
-            </div>
-            <button
-              type="button"
-              onClick={onStartDemo}
-              className="px-4 py-2 rounded-lg bg-white text-teal-800 text-xs font-bold hover:bg-teal-50 transition-colors shadow-xs shrink-0"
-            >
-              Buka Demo Sekarang →
-            </button>
-          </div>
+          <Link href="/register" className="ds-btn-primary inline-flex shrink-0 items-center gap-2 px-5 py-3 text-sm">
+            Buat akun gratis <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
         </div>
+        <p className="mt-6 flex items-center gap-2 text-sm text-slate-500"><Check className="h-4 w-4 text-primary-600" aria-hidden />Data keuangan Anda diisolasi untuk akun Anda.</p>
       </section>
-
-      {/* 3. Core Features Grid */}
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 mb-20">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Dibuat Khusus untuk Menyederhanakan Pengeluaran Rutin
-          </h2>
-          <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
-            Semua yang Anda butuhkan untuk mengelola komitmen finansial berulang tanpa kerumitan.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Card 1: Scanner */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mb-4 border border-teal-100">
-              <Scan className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Scan & Parse Email Tagihan</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Cukup tempel isi email tagihan dari Netflix, Spotify, ChatGPT, atau IndiHome. Sistem mengekstrak nama, nominal, dan tanggal secara otomatis tanpa mengetik manual.
-            </p>
-          </div>
-
-          {/* Card 2: Multi-Currency */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 border border-indigo-100">
-              <Coins className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Multi-Mata Uang Otomatis</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Catat tagihan dalam mata uang aslinya (USD, EUR, SGD, IDR) dengan dukungan angka desimal ($9.99). Seluruh total tetap diakumulasi rapi dalam Base Currency pilihan Anda.
-            </p>
-          </div>
-
-          {/* Card 3: Status Life-Cycle */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-100">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Jeda Langganan & Anti-Tunggakan</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Jeda langganan musiman tanpa menghapus datanya. Jika ada tagihan yang terlewat, status otomatis menjadi <em>Overdue</em> dan siap dilunasi dengan satu klik.
-            </p>
-          </div>
-
-          {/* Card 4: Historical Trends */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-shadow">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-4 border border-rose-100">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Grafik Tren Pengeluaran 12 Bulan</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Evaluasi lonjakan biaya antar-bulan melalui grafik visual Recharts. Identifikasi kategori mana yang paling memakan anggaran tiap bulannya.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Comparison Table: Spreadsheet vs Pelacak Langganan */}
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 mb-20">
-        <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 mb-6 text-center">
-            Mengapa Tidak Cukup Pakai Spreadsheet Biasa?
-          </h2>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  <th className="pb-3">Fitur</th>
-                  <th className="pb-3 text-slate-400">Spreadsheet Manual</th>
-                  <th className="pb-3 text-teal-600">Pelacak Langganan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="py-3.5 font-medium text-slate-900">Normalisasi Siklus Tagihan</td>
-                  <td className="py-3.5 text-slate-500">Ketik rumus manual</td>
-                  <td className="py-3.5 text-teal-700 font-semibold">✓ Otomatis (Tahunan/Kuartal/Bulanan)</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 font-medium text-slate-900">Konversi Kurs Valuta Asing</td>
-                  <td className="py-3.5 text-slate-500">Hitung kalkulator manual</td>
-                  <td className="py-3.5 text-teal-700 font-semibold">✓ Otomatis ke Base Currency</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 font-medium text-slate-900">Input Tagihan Cepat</td>
-                  <td className="py-3.5 text-slate-500">Ketik satu per satu</td>
-                  <td className="py-3.5 text-teal-700 font-semibold">✓ Scan Email / Invoice Digital</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 font-medium text-slate-900">Pengingat Jatuh Tempo</td>
-                  <td className="py-3.5 text-slate-500">Tidak ada pengingat</td>
-                  <td className="py-3.5 text-teal-700 font-semibold">✓ Email & Alert In-App (H-3)</td>
-                </tr>
-                <tr>
-                  <td className="py-3.5 font-medium text-slate-900">Privasi & Akses Data</td>
-                  <td className="py-3.5 text-slate-500">Rawan terhapus / terbagi</td>
-                  <td className="py-3.5 text-teal-700 font-semibold">✓ Terisolasi Row Level Security (RLS)</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Bottom CTA Box */}
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 text-center">
-        <div className="p-8 sm:p-12 rounded-3xl bg-slate-900 text-white shadow-xl relative overflow-hidden">
-          <div className="relative z-10">
-            <h2 className="text-3xl font-extrabold tracking-tight mb-4">
-              Siap Mengendalikan Pengeluaran Berulangmu?
-            </h2>
-            <p className="text-slate-300 max-w-lg mx-auto mb-8 text-sm sm:text-base">
-              Tidak ada biaya tersembunyi. Data keuangan Anda tersimpan privat khusus untuk Anda.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/register" className="w-full sm:w-auto">
-                <Button
-                  className="w-full sm:w-auto px-8 py-3.5 text-base font-semibold bg-teal-500 hover:bg-teal-400 text-slate-950 shadow-md"
-                >
-                  Buat Akun Gratis
-                </Button>
-              </Link>
-              <button
-                type="button"
-                onClick={onStartDemo}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 text-sm font-semibold transition-colors"
-              >
-                Coba Demo Dulu
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+    </main>
   );
 }

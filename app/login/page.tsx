@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/Button";
-import { Input, Field } from "@/components/ui/Input";
-import { Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck } from "lucide-react";
+import { Input, InputWithAdornment, Field } from "@/components/ui/Input";
+import { ArrowRight, Check, Eye, EyeOff, AlertCircle, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,23 +49,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center p-4 bg-slate-50">
-      <div className="w-full max-w-md">
+    <div className="min-h-[calc(100vh-5rem)] bg-slate-50 px-5 py-12 sm:px-8 sm:py-20">
+      <div className="mx-auto grid w-full max-w-5xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
         {/* Header Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-50 text-primary-600 mb-3 border border-primary-100 shadow-xs">
-            <ShieldCheck className="w-6 h-6 text-teal-600" />
+        <div className="pt-2 lg:pt-8">
+          <div className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-primary-600 text-white">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <p className="mt-7 text-sm font-medium text-primary-700">Selamat datang kembali</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-slate-950 sm:text-5xl">
             Masuk ke Pelacak Langganan
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="mt-5 max-w-sm text-base leading-7 text-slate-600">
             Sadar ke mana uangmu pergi dengan privasi data terlindungi.
           </p>
+          <ul className="mt-8 hidden space-y-3 border-t border-slate-200 pt-6 text-sm text-slate-600 lg:block">
+            {["Dashboard biaya berulang yang rapi", "Pengingat tagihan yang tepat waktu", "Data terisolasi untuk akun Anda"].map((item) => <li key={item} className="flex items-center gap-2"><Check className="h-4 w-4 text-primary-600" aria-hidden />{item}</li>)}
+          </ul>
         </div>
 
         {/* Card Form */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+        <div className="border border-slate-200 bg-white p-6 sm:p-9">
+          <div className="mb-7 border-b border-slate-100 pb-5"><h2 className="text-xl font-semibold tracking-[-0.02em] text-slate-950">Masukkan detail akun</h2><p className="mt-1 text-sm text-slate-500">Gunakan email dan kata sandi yang terdaftar.</p></div>
           {error && (
             <div
               role="alert"
@@ -77,11 +82,7 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Field>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                <Mail className="w-3.5 h-3.5 text-slate-400" />
-                Email
-              </span>
+            <Field label="Email" htmlFor="email" required>
               <Input
                 id="email"
                 name="email"
@@ -95,27 +96,20 @@ export default function LoginPage() {
               />
             </Field>
 
-            <Field>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                Kata Sandi
-              </span>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className="pr-10"
-                />
-                <button
+            <Field label="Kata Sandi" htmlFor="password" required>
+              <InputWithAdornment
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                trailingAdornment={<button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
                   aria-label={showPassword ? "Sembunyikan sandi" : "Tampilkan sandi"}
                 >
                   {showPassword ? (
@@ -123,22 +117,22 @@ export default function LoginPage() {
                   ) : (
                     <Eye className="w-4 h-4" />
                   )}
-                </button>
-              </div>
+                </button>}
+              />
             </Field>
 
             <div className="pt-2">
               <Button
                 type="submit"
                 loading={loading}
-                className="w-full justify-center py-2.5 text-base font-semibold shadow-xs"
+                className="w-full justify-center py-3 text-sm font-semibold"
               >
-                {loading ? "Memproses..." : "Masuk"}
+                {loading ? "Memproses..." : <span className="inline-flex items-center gap-2">Masuk <ArrowRight className="h-4 w-4" /></span>}
               </Button>
             </div>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+          <div className="mt-7 border-t border-slate-100 pt-5 text-center">
             <p className="text-sm text-slate-600">
               Belum punya akun?{" "}
               <Link
@@ -149,7 +143,7 @@ export default function LoginPage() {
               </Link>
             </p>
 
-            <div className="mt-4 pt-4 border-t border-slate-100/80">
+            <div className="mt-5 pt-4 border-t border-slate-100/80">
               <Link
                 href="/?demo=true"
                 className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-teal-700 transition-colors"

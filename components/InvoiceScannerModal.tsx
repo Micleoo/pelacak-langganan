@@ -18,7 +18,8 @@ import { parseInvoiceText, type ParsedInvoice } from "@/lib/invoice-parser";
 import { useStore } from "@/components/StoreProvider";
 import { SUPPORTED_CURRENCIES, CURRENCY_LABELS, type Currency } from "@/lib/currencies";
 import type { Interval } from "@/lib/types";
-import { ensureCategory } from "@/lib/categories";
+import { ensureCategory, suggestCategoryName } from "@/lib/categories";
+import { Field, FieldGroup, Input, Select, Textarea } from "@/components/ui/Input";
 
 interface InvoiceScannerModalProps {
   isOpen: boolean;
@@ -116,8 +117,9 @@ export function InvoiceScannerModal({
     setIsSaving(true);
     try {
       let categoryId: string | null = null;
-      if (parsed.suggested_category) {
-        categoryId = await ensureCategory(store, parsed.suggested_category);
+      const suggestedCategory = parsed.suggested_category ?? suggestCategoryName(parsed.name);
+      if (suggestedCategory) {
+        categoryId = await ensureCategory(store, suggestedCategory);
       }
 
       await addExpense({
@@ -150,16 +152,16 @@ export function InvoiceScannerModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="scanner-modal-title"
     >
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-xl border border-slate-200 bg-white sm:max-h-[90vh] sm:rounded-xl">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary-100 text-primary-700">
+            <div className="rounded-lg border border-primary-200 bg-primary-50 p-2 text-primary-700">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
@@ -174,7 +176,7 @@ export function InvoiceScannerModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
             aria-label="Tutup"
           >
             <X className="h-5 w-5" />
@@ -184,7 +186,7 @@ export function InvoiceScannerModal({
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-5">
           {/* Privacy Note */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
             <span>
               <strong>Privasi Terjamin:</strong> Pemrosesan berjalan 100% di browser Anda. Konten email tidak pernah dikirim ke server pihak ketiga.
@@ -222,18 +224,18 @@ export function InvoiceScannerModal({
             }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`relative rounded-xl border-2 transition-all p-3 ${
+            className={`relative rounded-lg border transition-colors p-3 ${
               isDragging
                 ? "border-primary-500 bg-primary-50/30"
                 : "border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/50"
             }`}
           >
-            <textarea
+            <Textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Tempel teks isi email konfirmasi tagihan di sini (atau tarik file .eml / .txt)..."
               rows={5}
-              className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none resize-y"
+              className="w-full min-h-[120px] border-0 bg-transparent p-0 text-sm text-slate-800 placeholder-slate-400 focus:outline-none resize-y"
             />
             <div className="mt-2 flex items-center justify-between border-t border-slate-200/60 pt-2 text-xs text-slate-400">
               <label className="cursor-pointer hover:text-primary-600 flex items-center gap-1">
@@ -252,7 +254,7 @@ export function InvoiceScannerModal({
               <button
                 type="button"
                 onClick={() => handleScan()}
-                className="px-3.5 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium flex items-center gap-1.5 shadow-sm transition-colors"
+                className="ds-btn-primary inline-flex min-h-0 items-center gap-1.5 px-3.5 py-1.5 text-xs"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 Ekstrak Tagihan
@@ -262,7 +264,7 @@ export function InvoiceScannerModal({
 
           {/* Extraction Result Card */}
           {parsed && (
-            <div className="rounded-xl border border-primary-200 bg-primary-50/20 p-4 space-y-3 animate-fade-in">
+            <div className="space-y-3 rounded-lg border border-primary-200 bg-primary-50/40 p-4 animate-fade-in">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -275,64 +277,64 @@ export function InvoiceScannerModal({
 
               {/* Editable Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Nama Layanan</label>
-                  <input
+                <Field label="Nama Layanan" htmlFor="scanner-name">
+                  <Input
+                    id="scanner-name"
                     type="text"
                     value={parsed.name}
                     onChange={(e) => setParsed({ ...parsed, name: e.target.value })}
-                    className="w-full text-sm font-medium px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                    className="text-sm font-medium"
                   />
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Nominal & Mata Uang</label>
-                  <div className="flex gap-2">
-                    <select
+                <Field label="Nominal & Mata Uang" htmlFor="scanner-amount">
+                  <FieldGroup>
+                    <Select
                       value={parsed.currency}
                       onChange={(e) => setParsed({ ...parsed, currency: e.target.value as Currency })}
                       aria-label="Mata uang"
-                      className="text-xs px-2 py-1.5 rounded-lg border border-slate-300 bg-white font-medium"
+                      className="w-24 text-xs font-medium"
                     >
                       {SUPPORTED_CURRENCIES.map((c) => (
                         <option key={c} value={c}>
                           {c}
                         </option>
                       ))}
-                    </select>
-                    <input
+                    </Select>
+                    <Input
+                      id="scanner-amount"
                       type="number"
                       value={parsed.amount}
                       onChange={(e) => setParsed({ ...parsed, amount: Number(e.target.value) })}
                       aria-label="Nominal tagihan"
-                      className="w-full text-sm font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                      className="text-sm font-semibold tabular-nums"
                     />
-                  </div>
-                </div>
+                  </FieldGroup>
+                </Field>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Siklus Tagihan</label>
-                  <select
+                <Field label="Siklus Tagihan" htmlFor="scanner-interval">
+                  <Select
+                    id="scanner-interval"
                     value={parsed.interval}
                     onChange={(e) => setParsed({ ...parsed, interval: e.target.value as Interval })}
-                    className="w-full text-sm px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                    className="text-sm"
                   >
                     <option value="monthly">Bulanan</option>
                     <option value="yearly">Tahunan</option>
                     <option value="quarterly">Kuartal</option>
                     <option value="weekly">Mingguan</option>
-                  </select>
-                </div>
+                  </Select>
+                </Field>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Jatuh Tempo Berikutnya</label>
-                  <input
+                <Field label="Jatuh Tempo Berikutnya" htmlFor="scanner-next-billing-date">
+                  <Input
+                    id="scanner-next-billing-date"
                     type="date"
                     value={parsed.next_billing_date}
                     onChange={(e) => setParsed({ ...parsed, next_billing_date: e.target.value })}
-                    className="w-full text-sm px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                    className="text-sm tabular-nums"
                   />
-                </div>
+                </Field>
               </div>
 
               {parsed.suggested_category && (
@@ -348,11 +350,11 @@ export function InvoiceScannerModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-end gap-2 bg-slate-50/50">
+        <div className="flex flex-col-reverse justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-xl transition-colors"
+            className="ds-btn-secondary px-4 py-2"
           >
             Batal
           </button>
@@ -363,7 +365,7 @@ export function InvoiceScannerModal({
                 <button
                   type="button"
                   onClick={handleApply}
-                  className="px-4 py-2 text-sm font-semibold text-primary-700 bg-primary-100 hover:bg-primary-200 rounded-xl transition-colors flex items-center gap-1.5"
+                  className="inline-flex min-h-[42px] items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-800 transition-colors hover:bg-primary-100"
                 >
                   <ArrowRight className="h-4 w-4" />
                   Terapkan ke Form
@@ -374,7 +376,7 @@ export function InvoiceScannerModal({
                 type="button"
                 onClick={handleSaveDirectly}
                 disabled={isSaving}
-                className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+                className="ds-btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm"
               >
                 <Check className="h-4 w-4" />
                 {isSaving ? "Menyimpan..." : "Simpan ke Daftar Biaya"}

@@ -70,13 +70,13 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-xs">
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95">
       <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link
           href="/"
           className="flex items-center gap-2 text-sm font-semibold tracking-tight text-ink-slate no-underline"
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600 text-white shadow-xs">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-700 text-white">
             <CreditCard className="h-4 w-4" aria-hidden />
           </span>
           <span>Pelacak Langganan</span>
@@ -112,7 +112,7 @@ export function SiteHeader() {
               type="button"
               onClick={handleSignOut}
               disabled={signingOut}
-              className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50"
+              className="inline-flex items-center gap-1 rounded-lg p-1.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
               title="Keluar dari akun"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -121,7 +121,7 @@ export function SiteHeader() {
           </div>
         )}
 
-        {/* Auth page links */}
+        {/* Auth and public visitor links */}
         {isAuthPage && (
           <div className="flex items-center gap-2 text-xs font-medium">
             {pathname.startsWith("/login") ? (
@@ -139,6 +139,13 @@ export function SiteHeader() {
                 Masuk
               </Link>
             )}
+          </div>
+        )}
+
+        {!isAuthPage && !user && (
+          <div className="flex items-center gap-1 text-xs font-semibold">
+            <Link href="/login" className="px-3 py-2 text-slate-600 transition-colors hover:text-slate-950">Masuk</Link>
+            <Link href="/register" className="rounded-lg bg-slate-950 px-3 py-2 text-white transition-colors hover:bg-slate-800">Buat akun</Link>
           </div>
         )}
 
@@ -174,7 +181,7 @@ export function SiteHeader() {
               type="button"
               onClick={handleSignOut}
               disabled={signingOut}
-              className="text-xs text-red-600 hover:underline font-medium inline-flex items-center gap-1"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
             >
               <LogOut className="w-3 h-3" />
               Keluar

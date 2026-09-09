@@ -7,6 +7,7 @@ import { resolveNotifyDays } from "@/lib/recurring";
 import { exportExpensesToCSV } from "@/lib/export-csv";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
+import { Field, Input, Select } from "@/components/ui/Input";
 import { toast } from "react-hot-toast";
 import { NO_CATEGORY_LABEL } from "@/lib/constants";
 import {
@@ -190,8 +191,6 @@ export default function SettingsPage() {
     }
   }
 
-  const inputClass = "ds-input";
-
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <h1 className="mb-1 text-3xl font-semibold text-ink-slate">
@@ -234,25 +233,19 @@ export default function SettingsPage() {
         </Card>
 
         <Card className="p-5">
-          <label htmlFor="global-days" className="mb-1.5 block text-sm font-medium text-ink-slate">
-            Timing pengingat global
-          </label>
-          <p className="mb-3 text-xs text-slate-500">
-            Berapa hari sebelum jatuh tempo Anda ingin diingatkan (semua biaya,
-            kecuali yang punya pengaturan sendiri).
-          </p>
-          <select
+          <Field label="Timing pengingat global" htmlFor="global-days" helperText="Berapa hari sebelum jatuh tempo Anda ingin diingatkan, kecuali biaya memiliki pengaturan sendiri.">
+          <Select
             id="global-days"
             value={globalDays}
             onChange={(e) => onGlobalChange(Number(e.target.value))}
-            className={inputClass}
           >
             {DAYS.map((d) => (
               <option key={d} value={d}>
                 H-{d} ({d} hari sebelum)
               </option>
             ))}
-          </select>
+          </Select>
+          </Field>
         </Card>
 
         <Card className="p-5">
@@ -278,15 +271,12 @@ export default function SettingsPage() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-            <div>
-              <label htmlFor="user-email" className="mb-1.5 block text-sm font-medium text-ink-slate">
-                Alamat Email Pengingat
-              </label>
+            <Field label="Alamat Email Pengingat" htmlFor="user-email" helperText="Email disimpan otomatis atau klik Simpan Email.">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <input
+                <Input
                   id="user-email"
                   type="email"
-                  className="ds-input flex-1"
+                  className="flex-1"
                   placeholder="nama@email.com"
                   value={emailInput}
                   onChange={(e) => handleEmailChange(e.target.value)}
@@ -302,10 +292,7 @@ export default function SettingsPage() {
                   {isSavingEmail ? "Menyimpan..." : "Simpan Email"}
                 </button>
               </div>
-              <p className="mt-1.5 text-xs text-slate-500">
-                Email disimpan otomatis atau klik Simpan Email.
-              </p>
-            </div>
+            </Field>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
               <span className="text-xs text-slate-500">
@@ -351,7 +338,7 @@ export default function SettingsPage() {
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink-slate">
                     {e.name}
                   </span>
-                  <select
+                  <Select
                     value={e.notify_days_before ?? ""}
                     onChange={(ev) => {
                       const v = ev.target.value;
@@ -368,7 +355,6 @@ export default function SettingsPage() {
                         )
                         .catch(() => toast.error("Gagal memperbarui biaya."));
                     }}
-                    className={inputClass}
                     aria-label={`Timing pengingat ${e.name}`}
                   >
                     <option value="">
@@ -379,7 +365,7 @@ export default function SettingsPage() {
                         H-{d}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </li>
               ))}
             </ul>
@@ -398,7 +384,7 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-          <select
+          <Select
             value={settings.base_currency}
             onChange={(e) => {
               const v = e.target.value as Currency;
@@ -406,7 +392,6 @@ export default function SettingsPage() {
                 .then(() => toast.success(`Mata uang dasar diubah ke ${CURRENCY_LABELS[v]}.`))
                 .catch(() => toast.error("Gagal memperbarui pengaturan."));
             }}
-            className={inputClass}
             aria-label="Mata uang dasar"
           >
             {SUPPORTED_CURRENCIES.map((c) => (
@@ -414,7 +399,7 @@ export default function SettingsPage() {
                 {CURRENCY_LABELS[c]}
               </option>
             ))}
-          </select>
+          </Select>
 
           <div className="mt-4 pt-4 border-t border-slate-100">
             <h3 className="text-xs font-semibold text-ink-slate uppercase tracking-wider mb-1.5">

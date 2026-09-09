@@ -6,6 +6,7 @@ import { useStore } from "@/components/StoreProvider";
 import { CategoryIcon } from "@/components/CategoryIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { toast } from "react-hot-toast";
 
 export default function CategoriesPage() {
@@ -70,22 +71,22 @@ export default function CategoriesPage() {
         </p>
       </div>
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row">
         <label className="sr-only" htmlFor="new-category">
           Nama kategori baru
         </label>
-        <input
+        <Input
           id="new-category"
           type="text"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           placeholder="Nama kategori baru (mis. Streaming)"
-          className="ds-input flex-1 py-2"
+          className="flex-1"
         />
         <Button
           onClick={handleAdd}
-          className="gap-1.5"
+          className="justify-center gap-1.5"
           loading={isAdding}
         >
           <Plus className="h-4 w-4" aria-hidden />
@@ -106,16 +107,16 @@ export default function CategoriesPage() {
           ).length;
           const editing = editingId === category.id;
           return (
-            <li key={category.id} className="flex items-center gap-3 px-4 py-3">
+            <li key={category.id} className="flex items-center gap-3 px-4 py-3.5">
               <CategoryIcon name={category.name} />
               {editing ? (
                 <div className="flex flex-1 items-center gap-2">
-                  <input
+                  <Input
                     autoFocus
                     value={editingName}
                     onChange={(e) => setEditingName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleRename()}
-                    className="ds-input flex-1 py-1 px-2"
+                    className="flex-1"
                   />
                   <button
                     type="button"
@@ -184,7 +185,7 @@ export default function CategoriesPage() {
                       type="button"
                       onClick={() => setConfirmDeleteId(category.id)}
                       aria-label={`Hapus kategori ${category.name}`}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100"
+                      className="rounded-md p-1.5 text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
