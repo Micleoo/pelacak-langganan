@@ -53,6 +53,16 @@ export default function DashboardPage() {
 
   const categoryName = (id: string | null) =>
     categories.find((c) => c.id === id)?.name ?? NO_CATEGORY_LABEL;
+  const expenseName = (expense: Expense) =>
+    isDemoMode ? (
+      <span className="truncate text-sm font-medium text-ink-slate" title="Data contoh tidak dapat diedit di mode demo">
+        {expense.name}
+      </span>
+    ) : (
+      <Link href={`/expenses/${expense.id}/edit`} className="truncate text-sm font-medium text-ink-slate hover:text-primary-600">
+        {expense.name}
+      </Link>
+    );
 
   // Deep Module Seam: Seluruh orkestrasi ringkasan finansial diserap oleh computeInsight
   const insight = computeInsight(expenses, categories, settings, today);
@@ -221,7 +231,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <PrivacyBanner />
+      <PrivacyBanner isDemo={isDemoMode} />
 
       {showBanner && (
         <div className="mb-6 rounded-xl border border-accent-200 bg-accent-50 px-4 py-3">
@@ -245,12 +255,9 @@ export default function DashboardPage() {
             Ringkasan seluruh biaya berulang dan tagihan rutin Anda.
           </p>
         </div>
-        <Link
-          href="/expenses/new"
-          className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5"
-        >
+        <Link href={isDemoMode ? "/register" : "/expenses/new"} className="ds-btn-primary inline-flex shrink-0 items-center gap-1.5">
           <Plus className="h-4 w-4" aria-hidden />
-          Tambah biaya
+          {isDemoMode ? "Buat akun untuk tambah biaya" : "Tambah biaya"}
         </Link>
       </div>
 
@@ -291,12 +298,11 @@ export default function DashboardPage() {
                 <span>€1 = Rp 16.800</span>
                 <span>·</span>
                 <span>S$1 = Rp 11.500</span>
-                <Link
-                  href="/settings"
-                  className="ml-1 text-primary-700 underline hover:text-primary-900 font-semibold"
-                >
-                  Detail
-                </Link>
+                {isDemoMode ? (
+                  <span className="ml-1 font-semibold text-primary-700">Atur di akun Anda</span>
+                ) : (
+                  <Link href="/settings" className="ml-1 text-primary-700 underline hover:text-primary-900 font-semibold">Detail</Link>
+                )}
               </div>
             </div>
           </section>
@@ -321,12 +327,7 @@ export default function DashboardPage() {
                         <CategoryIcon name={categoryName(e.category_id)} size={32} />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <Link
-                              href={`/expenses/${e.id}/edit`}
-                              className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
-                            >
-                              {e.name}
-                            </Link>
+                            {expenseName(e)}
                             <StatusBadge status={e.status} />
                             <span className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-rose-700">
                               {rel.label}
@@ -354,7 +355,7 @@ export default function DashboardPage() {
                             aria-label={`Tandai ${e.name} sebagai dibayar`}
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                            Bayar
+                            Bayar sekarang
                           </button>
                           <button
                             type="button"
@@ -363,7 +364,7 @@ export default function DashboardPage() {
                             aria-label={`Catat pembayaran ${e.name}`}
                           >
                             <DollarSign className="h-3.5 w-3.5" aria-hidden />
-                            Catat
+                            Catat pembayaran lampau
                           </button>
                         </div>
                       </li>
@@ -398,12 +399,7 @@ export default function DashboardPage() {
                         <CategoryIcon name={categoryName(e.category_id)} size={32} />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <Link
-                              href={`/expenses/${e.id}/edit`}
-                              className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
-                            >
-                              {e.name}
-                            </Link>
+                            {expenseName(e)}
                             {overdue && (
                               <Badge>Terlewat · dimajukan</Badge>
                             )}
@@ -466,12 +462,7 @@ export default function DashboardPage() {
                         <CategoryIcon name={categoryName(e.category_id)} size={32} />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <Link
-                              href={`/expenses/${e.id}/edit`}
-                              className="truncate text-sm font-medium text-ink-slate hover:text-primary-600"
-                            >
-                              {e.name}
-                            </Link>
+                            {expenseName(e)}
                             <StatusBadge status={e.status} />
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5">

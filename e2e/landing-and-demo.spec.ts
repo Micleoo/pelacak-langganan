@@ -41,9 +41,10 @@ test.describe("Landing Page & Interactive Demo Mode", () => {
     await expect(page.getByText(/Data contoh sedang dimuat tanpa akun/)).toBeVisible();
 
     // Verify Demo Expenses are rendered
-    await expect(page.getByRole("link", { name: "Netflix Premium" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Spotify Individual" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "IndiHome Fiber 50Mbps" })).toBeVisible();
+    await expect(page.getByText("Netflix Premium", { exact: true })).toBeVisible();
+    await expect(page.getByText("Spotify Individual", { exact: true })).toBeVisible();
+    await expect(page.getByText("IndiHome Fiber 50Mbps", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Buat akun untuk tambah biaya" })).toBeVisible();
 
     // Verify Currency Reference Badge is present
     await expect(page.getByText(/Kurs acuan:/)).toBeVisible();

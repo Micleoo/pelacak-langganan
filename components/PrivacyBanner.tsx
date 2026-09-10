@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ShieldCheck, X } from "lucide-react";
 
-export function PrivacyBanner() {
+export function PrivacyBanner({ isDemo = false }: { isDemo?: boolean }) {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
@@ -30,7 +30,10 @@ export function PrivacyBanner() {
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
         </span>
         <p className="leading-relaxed">
-          <strong className="font-semibold text-primary-900">Privasi & Keamanan:</strong> Data langganan ini tersimpan aman khusus untuk perangkat & sesi Anda. Tanpa pelacak pihak ketiga.
+          <strong className="font-semibold text-primary-900">Privasi & Keamanan:</strong>{" "}
+          {isDemo
+            ? "Mode demo memakai data contoh sementara dan tidak menyimpan perubahan ke akun Anda."
+            : "Data langganan disimpan di akun Anda dan hanya dapat diakses saat Anda masuk."}
         </p>
       </div>
       <button
