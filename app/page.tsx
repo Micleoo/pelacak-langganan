@@ -38,6 +38,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get("demo") === "true") {
         setIsDemoMode(true);
+        setTrendMode("actual");
       }
     }
   }, []);
@@ -176,7 +177,10 @@ export default function DashboardPage() {
 
   // Jika pengunjung publik (belum login) dan tidak dalam mode demo, tampilkan Landing Page
   if (!user && !isDemoMode) {
-    return <LandingPage onStartDemo={() => setIsDemoMode(true)} />;
+    return <LandingPage onStartDemo={() => {
+      setIsDemoMode(true);
+      setTrendMode("actual");
+    }} />;
   }
 
   return (

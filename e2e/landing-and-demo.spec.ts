@@ -49,10 +49,8 @@ test.describe("Landing Page & Interactive Demo Mode", () => {
     await expect(page.getByText(/Kurs acuan:/)).toBeVisible();
     await expect(page.getByText(/\$1 = Rp 15\.500/)).toBeVisible();
 
-    // Proyeksi langsung tersedia tanpa harus mencatat pembayaran lebih dulu.
+    // Demo membuka riwayat aktual agar pola pengeluaran lebih bervariasi dan mudah dibaca.
     await expect(page.getByRole("radio", { name: "Proyeksi" })).toBeVisible();
-    await expect(page.getByText("Estimasi dari biaya aktif saat ini, bukan pembayaran tercatat.")).toBeVisible();
-    await page.getByRole("radio", { name: "Aktual" }).click();
     await expect(page.getByRole("radio", { name: "Aktual" })).toBeChecked();
 
     // Test paying an overdue expense in demo mode
