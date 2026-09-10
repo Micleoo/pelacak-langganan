@@ -16,6 +16,7 @@ import type { Category } from "@/lib/types";
 import type { Currency } from "@/lib/currencies";
 import { formatAmount } from "@/lib/format";
 import { categoryIdentity, CATEGORY_HEX } from "@/lib/categories";
+import { NO_CATEGORY_LABEL } from "@/lib/constants";
 
 const MONTH_LABELS: Record<string, string> = {
   "01": "Jan",
@@ -45,7 +46,11 @@ interface CategoryStackedChartProps {
 
 export function CategoryStackedChart({ data, baseCurrency, categories }: CategoryStackedChartProps) {
   const categoryList = categories.filter((c) => c.id !== "__none__");
-  const hasNoneCategory = categories.some((c) => c.id === "__none__");
+  const hasNoneCategory = data.some((month) => month.byCategory.has("__none__"));
+  const categorySeriesLabel = (value: string) => {
+    if (value === "__none__") return NO_CATEGORY_LABEL;
+    return categoryList.find((category) => category.id === value || category.name === value)?.name ?? value;
+  };
 
   const chartData = data.map((d) => {
     const base: Record<string, string | number> = { month: formatMonthKey(d.month), monthKey: d.month };
@@ -63,8 +68,7 @@ export function CategoryStackedChart({ data, baseCurrency, categories }: Categor
 
   const tooltipFormatter = (value: number | undefined, name: string): [string, string] => {
     if (value === undefined) return ["", name];
-    const cat = categoryList.find((c) => c.id === name);
-    return [formatAmount(value, baseCurrency), cat?.name ?? "Tanpa kategori"];
+    return [formatAmount(value, baseCurrency), categorySeriesLabel(name)];
   };
 
   const stackedBars = categoryList.map((cat) => {
@@ -128,10 +132,7 @@ export function CategoryStackedChart({ data, baseCurrency, categories }: Categor
           iconType="circle"
           iconSize={8}
           wrapperStyle={{ paddingTop: "10px", paddingBottom: "10px" }}
-          formatter={(value: string) => {
-            const cat = categoryList.find((c) => c.id === value);
-            return cat?.name ?? "Tanpa kategori";
-          }}
+          formatter={categorySeriesLabel}
         />
         {stackedBars}
         {noneBar}

@@ -27,6 +27,6 @@ describe("form presentation primitives", () => {
   it("keeps adornments outside the input while preserving native input attributes", () => {
     render(<InputWithAdornment aria-label="Nominal" disabled leadingAdornment={<span>Rp</span>} />);
     expect((screen.getByLabelText("Nominal") as HTMLInputElement).disabled).toBe(true);
-    expect(screen.getByText("Rp").classList.contains("ds-input-leading")).toBe(true);
+    expect(screen.getByText("Rp").parentElement?.classList.contains("ds-input-leading")).toBe(true);
   });
 });
