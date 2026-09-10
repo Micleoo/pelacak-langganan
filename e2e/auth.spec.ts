@@ -63,7 +63,7 @@ test.describe("Authentication & Navigation Flow", () => {
 
     // Click register link
     await page.getByRole("link", { name: "Daftar sekarang" }).click();
-    await expect(page).toHaveURL(/\/register/);
+    await page.waitForURL(/\/register/);
     await expect(page.getByRole("heading", { name: "Daftar Akun Baru" })).toBeVisible();
     await expect(page.getByText("Mulai kelola langganan rutin Anda dengan data pribadi terisolasi.")).toBeVisible();
 
@@ -92,7 +92,7 @@ test.describe("Authentication & Navigation Flow", () => {
     await expect(demoLink).toBeVisible();
     await demoLink.click();
 
-    await expect(page).toHaveURL(/\?demo=true/);
+    await page.waitForURL(/\?demo=true/);
     await expect(page.getByText("Mode Demo Interaktif")).toBeVisible();
     await expect(page.getByRole("link", { name: "Netflix Premium" })).toBeVisible();
   });
